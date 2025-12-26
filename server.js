@@ -189,7 +189,7 @@ app.post('/api/create-order', async (req, res) => {
               });
             }
 
-              const orderId = this.lastID;
+            const orderId = this.lastID;
 
             // Tạo link thanh toán PayOS (chỉ nếu không phải trial)
             if (packageType === 'trial') {
