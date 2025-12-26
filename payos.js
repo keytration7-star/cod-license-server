@@ -57,28 +57,23 @@ async function createPaymentLink(orderData) {
       items = []
     } = orderData;
 
-    // Lấy server URL, nếu không có thì dùng localhost
-    const serverUrl = process.env.LICENSE_SERVER_URL || 'http://localhost:3000';
-    
-    const paymentData = {
+    // Lấy server URL từ config nếu không có trong tham số
+    const serverUrl = process.env.LICENSE_SERVER_URL || 
+                     (process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL ? 
+                       `https://${process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL}` : 
+                       null) ||
+                     config.LICENSE_SERVER_URL ||
+                     'http://localhost:3000';
+
+    // Format request theo PayOS API v2
+    // Sử dụng returnUrl và cancelUrl từ tham số, nếu không có thì tạo từ serverUrl
+    const requestBody = {
       orderCode: parseInt(orderCode),
       amount: amount,
       description: description,
       items: items,
       cancelUrl: cancelUrl || `${serverUrl}/payment/cancel`,
       returnUrl: returnUrl || `${serverUrl}/payment/success`,
-    };
-
-    // PayOS API v2 không yêu cầu checksum trong body khi tạo payment link
-    // Chỉ cần checksum khi verify webhook
-    // Format request theo PayOS API v2
-    const requestBody = {
-      orderCode: parseInt(orderCode),
-      amount: amount,
-      description: description,
-      items: items,
-      cancelUrl: cancelUrl || `${process.env.LICENSE_SERVER_URL}/payment/cancel`,
-      returnUrl: returnUrl || `${process.env.LICENSE_SERVER_URL}/payment/success`,
     };
 
     // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)

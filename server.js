@@ -267,12 +267,28 @@ app.post('/api/create-order', async (req, res) => {
             }
           );
 
+          // PayOS response structure: response.data.data.checkoutUrl hoặc response.data.checkoutUrl
+          const checkoutUrl = paymentResult.data?.data?.checkoutUrl || 
+                             paymentResult.data?.checkoutUrl || 
+                             paymentResult.data?.link;
+          const paymentLinkId = paymentResult.data?.data?.paymentLinkId || 
+                               paymentResult.data?.paymentLinkId || 
+                               paymentResult.data?.id;
+
+          if (!checkoutUrl) {
+            console.error('PayOS response missing checkoutUrl:', JSON.stringify(paymentResult.data, null, 2));
+            return sendResponse(500, {
+              success: false,
+              error: 'PayOS response không có checkoutUrl. Response: ' + JSON.stringify(paymentResult.data),
+            });
+          }
+
           sendResponse(200, {
             success: true,
             orderId,
             orderCode,
-            paymentLink: paymentResult.data.data.checkoutUrl,
-            paymentLinkId: paymentResult.data.data.paymentLinkId,
+            paymentLink: checkoutUrl,
+            paymentLinkId: paymentLinkId,
           });
         } catch (innerError) {
           console.error('Error in create-order callback:', innerError);
