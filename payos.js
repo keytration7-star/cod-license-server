@@ -65,15 +65,21 @@ async function createPaymentLink(orderData) {
       returnUrl: returnUrl || `${process.env.LICENSE_SERVER_URL}/payment/success`,
     };
 
-    // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined và empty string)
-    if (!PAYOS_CLIENT_ID || !PAYOS_API_KEY || PAYOS_CLIENT_ID.trim() === '' || PAYOS_API_KEY.trim() === '') {
+    // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)
+    const clientId = PAYOS_CLIENT_ID?.trim?.() || PAYOS_CLIENT_ID || '';
+    const apiKey = PAYOS_API_KEY?.trim?.() || PAYOS_API_KEY || '';
+    
+    if (!clientId || !apiKey || clientId === '' || apiKey === '') {
       console.error('PayOS API keys missing or empty:', {
         hasClientId: !!PAYOS_CLIENT_ID,
         hasApiKey: !!PAYOS_API_KEY,
+        clientIdType: typeof PAYOS_CLIENT_ID,
+        apiKeyType: typeof PAYOS_API_KEY,
         clientIdLength: PAYOS_CLIENT_ID?.length || 0,
         apiKeyLength: PAYOS_API_KEY?.length || 0,
-        clientIdValue: PAYOS_CLIENT_ID ? PAYOS_CLIENT_ID.substring(0, 8) + '...' : 'undefined',
-        apiKeyValue: PAYOS_API_KEY ? PAYOS_API_KEY.substring(0, 8) + '...' : 'undefined',
+        clientIdValue: PAYOS_CLIENT_ID ? (typeof PAYOS_CLIENT_ID === 'string' ? PAYOS_CLIENT_ID.substring(0, 8) + '...' : String(PAYOS_CLIENT_ID).substring(0, 8) + '...') : 'undefined',
+        apiKeyValue: PAYOS_API_KEY ? (typeof PAYOS_API_KEY === 'string' ? PAYOS_API_KEY.substring(0, 8) + '...' : String(PAYOS_API_KEY).substring(0, 8) + '...') : 'undefined',
+        allEnvVars: Object.keys(process.env).filter(k => k.includes('PAYOS')),
       });
       return {
         success: false,
