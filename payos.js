@@ -17,6 +17,10 @@ console.log('🔑 PayOS Config loaded:', {
   clientIdLength: PAYOS_CLIENT_ID?.length || 0,
   apiKeyLength: PAYOS_API_KEY?.length || 0,
   apiUrl: PAYOS_API_URL,
+  // Debug: kiểm tra cả 2 cách
+  directClientId: !!process.env.PAYOS_CLIENT_ID,
+  railwayClientId: !!process.env.RAILWAY_SERVICE_PAYOS_CLIENT_ID,
+  allPayOSKeys: Object.keys(process.env).filter(k => k.includes('PAYOS')),
 });
 
 /**
