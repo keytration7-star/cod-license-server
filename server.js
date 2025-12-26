@@ -97,10 +97,12 @@ app.get('/api/test-payos', async (req, res) => {
     };
 
     // Test tạo payment link với order code test
-    const testOrderCode = Date.now();
+    // Sử dụng order code nhỏ hơn để tránh vấn đề
+    const testOrderCode = Math.floor(Date.now() / 1000); // Unix timestamp (10 chữ số)
+    const testAmount = 1000; // Test với 1000 VNĐ
     const testResult_payos = await payos.createPaymentLink({
       orderCode: testOrderCode.toString(),
-      amount: 1000, // Test với 1000 VNĐ
+      amount: testAmount,
       description: 'Test PayOS Connection',
       returnUrl: `${process.env.LICENSE_SERVER_URL || 'http://localhost:3000'}/payment/success?orderCode=${testOrderCode}`,
       cancelUrl: `${process.env.LICENSE_SERVER_URL || 'http://localhost:3000'}/payment/cancel?orderCode=${testOrderCode}`,
@@ -108,7 +110,7 @@ app.get('/api/test-payos', async (req, res) => {
         {
           name: 'Test Item',
           quantity: 1,
-          price: 1000,
+          price: testAmount, // Đảm bảo price * quantity = amount
         },
       ],
     });
@@ -171,7 +173,9 @@ app.post('/api/create-order', async (req, res) => {
     }
 
     const packageInfo = PACKAGES[packageType];
-    const orderCode = Date.now(); // Tạo order code từ timestamp
+    // PayOS yêu cầu orderCode là số nguyên, không quá lớn
+    // Sử dụng Unix timestamp (10 chữ số) thay vì milliseconds (13 chữ số)
+    const orderCode = Math.floor(Date.now() / 1000); // Unix timestamp
 
     // Tạo order trong database
     try {
