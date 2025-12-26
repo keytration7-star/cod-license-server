@@ -189,114 +189,114 @@ app.post('/api/create-order', async (req, res) => {
               });
             }
 
-          const orderId = this.lastID;
+              const orderId = this.lastID;
 
-          // Tạo link thanh toán PayOS (chỉ nếu không phải trial)
-          if (packageType === 'trial') {
-            // Trial không cần thanh toán, tạo license ngay
-            try {
-              const licenseData = await license.createLicense(orderId, packageType, packageInfo.duration);
-              
-              // Cập nhật order status
-              db.run(`UPDATE orders SET status = 'completed' WHERE id = ?`, [orderId], (updateErr) => {
-                if (updateErr) {
-                  console.error('Error updating trial order status:', updateErr);
-                }
-              });
+            // Tạo link thanh toán PayOS (chỉ nếu không phải trial)
+            if (packageType === 'trial') {
+              // Trial không cần thanh toán, tạo license ngay
+              try {
+                const licenseData = await license.createLicense(orderId, packageType, packageInfo.duration);
+                
+                // Cập nhật order status
+                db.run(`UPDATE orders SET status = 'completed' WHERE id = ?`, [orderId], (updateErr) => {
+                  if (updateErr) {
+                    console.error('Error updating trial order status:', updateErr);
+                  }
+                });
 
-              return sendResponse(200, {
-                success: true,
-                orderId,
-                orderCode,
-                licenseKey: licenseData.licenseKey,
-                expiresAt: licenseData.expiresAt,
-                isTrial: true,
-              });
-            } catch (error) {
-              console.error('Create trial license error:', error);
+                return sendResponse(200, {
+                  success: true,
+                  orderId,
+                  orderCode,
+                  licenseKey: licenseData.licenseKey,
+                  expiresAt: licenseData.expiresAt,
+                  isTrial: true,
+                });
+              } catch (error) {
+                console.error('Create trial license error:', error);
+                return sendResponse(500, {
+                  success: false,
+                  error: 'Failed to create trial license: ' + error.message,
+                });
+              }
+            }
+
+            // Lấy server URL, Railway có thể tự động tạo RAILWAY_SERVICE_COD_LICENSE_SERVER_URL
+            // Nếu không tìm thấy, dùng giá trị fallback từ config.js
+            const serverUrl = process.env.LICENSE_SERVER_URL || 
+                             (process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL ? 
+                               `https://${process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL}` : 
+                               null) ||
+                             config.LICENSE_SERVER_URL ||
+                             'http://localhost:3000';
+            
+            console.log('Creating PayOS payment link:', {
+              orderCode,
+              amount: packageInfo.price,
+              serverUrl,
+            });
+
+            // Tạo link thanh toán PayOS
+            const paymentResult = await payos.createPaymentLink({
+              orderCode: orderCode.toString(),
+              amount: packageInfo.price,
+              description: `Thanh toán gói ${packageInfo.name} - Hệ Thống Đối Soát COD`,
+              returnUrl: `${serverUrl}/payment/success?orderCode=${orderCode}`,
+              cancelUrl: `${serverUrl}/payment/cancel?orderCode=${orderCode}`,
+              items: [
+                {
+                  name: packageInfo.name,
+                  quantity: 1,
+                  price: packageInfo.price,
+                },
+              ],
+            });
+
+            if (!paymentResult.success) {
+              console.error('PayOS payment link creation failed:', paymentResult.error, paymentResult.details);
               return sendResponse(500, {
                 success: false,
-                error: 'Failed to create trial license: ' + error.message,
+                error: 'Failed to create payment link: ' + (paymentResult.error || 'Unknown error'),
+                details: paymentResult.details || paymentResult.error,
               });
             }
-          }
 
-          // Lấy server URL, Railway có thể tự động tạo RAILWAY_SERVICE_COD_LICENSE_SERVER_URL
-          // Nếu không tìm thấy, dùng giá trị fallback từ config.js
-          const serverUrl = process.env.LICENSE_SERVER_URL || 
-                           (process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL ? 
-                             `https://${process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL}` : 
-                             null) ||
-                           config.LICENSE_SERVER_URL ||
-                           'http://localhost:3000';
-          
-          console.log('Creating PayOS payment link:', {
-            orderCode,
-            amount: packageInfo.price,
-            serverUrl,
-          });
+            // PayOS response structure: response.data.data.checkoutUrl hoặc response.data.checkoutUrl
+            const checkoutUrl = paymentResult.data?.data?.checkoutUrl || 
+                               paymentResult.data?.checkoutUrl || 
+                               paymentResult.data?.link;
+            const paymentLinkId = paymentResult.data?.data?.paymentLinkId || 
+                                 paymentResult.data?.paymentLinkId || 
+                                 paymentResult.data?.id;
 
-          // Tạo link thanh toán PayOS
-          const paymentResult = await payos.createPaymentLink({
-            orderCode: orderCode.toString(),
-            amount: packageInfo.price,
-            description: `Thanh toán gói ${packageInfo.name} - Hệ Thống Đối Soát COD`,
-            returnUrl: `${serverUrl}/payment/success?orderCode=${orderCode}`,
-            cancelUrl: `${serverUrl}/payment/cancel?orderCode=${orderCode}`,
-            items: [
-              {
-                name: packageInfo.name,
-                quantity: 1,
-                price: packageInfo.price,
-              },
-            ],
-          });
+            if (!checkoutUrl) {
+              console.error('PayOS response missing checkoutUrl:', JSON.stringify(paymentResult.data, null, 2));
+              return sendResponse(500, {
+                success: false,
+                error: 'PayOS response không có checkoutUrl. Response: ' + JSON.stringify(paymentResult.data),
+              });
+            }
 
-          if (!paymentResult.success) {
-            console.error('PayOS payment link creation failed:', paymentResult.error, paymentResult.details);
-            return sendResponse(500, {
-              success: false,
-              error: 'Failed to create payment link: ' + (paymentResult.error || 'Unknown error'),
-              details: paymentResult.details || paymentResult.error,
-            });
-          }
-
-          // PayOS response structure: response.data.data.checkoutUrl hoặc response.data.checkoutUrl
-          const checkoutUrl = paymentResult.data?.data?.checkoutUrl || 
-                             paymentResult.data?.checkoutUrl || 
-                             paymentResult.data?.link;
-          const paymentLinkId = paymentResult.data?.data?.paymentLinkId || 
-                               paymentResult.data?.paymentLinkId || 
-                               paymentResult.data?.id;
-
-          if (!checkoutUrl) {
-            console.error('PayOS response missing checkoutUrl:', JSON.stringify(paymentResult.data, null, 2));
-            return sendResponse(500, {
-              success: false,
-              error: 'PayOS response không có checkoutUrl. Response: ' + JSON.stringify(paymentResult.data),
-            });
-          }
-
-          // Lưu payment link ID (nếu có)
-          if (paymentLinkId) {
-            db.run(
-              `UPDATE orders SET payos_payment_link_id = ? WHERE id = ?`,
-              [paymentLinkId, orderId],
-              (updateErr) => {
-                if (updateErr) {
-                  console.error('Error updating order with payment link ID:', updateErr);
+            // Lưu payment link ID (nếu có)
+            if (paymentLinkId) {
+              db.run(
+                `UPDATE orders SET payos_payment_link_id = ? WHERE id = ?`,
+                [paymentLinkId, orderId],
+                (updateErr) => {
+                  if (updateErr) {
+                    console.error('Error updating order with payment link ID:', updateErr);
+                  }
                 }
-              }
-            );
-          }
+              );
+            }
 
-          sendResponse(200, {
-            success: true,
-            orderId,
-            orderCode,
-            paymentLink: checkoutUrl,
-            paymentLinkId: paymentLinkId,
-          });
+            sendResponse(200, {
+              success: true,
+              orderId,
+              orderCode,
+              paymentLink: checkoutUrl,
+              paymentLinkId: paymentLinkId,
+            });
           } catch (innerError) {
             console.error('Error in create-order callback:', innerError);
             sendResponse(500, {
