@@ -181,13 +181,13 @@ app.post('/api/create-order', async (req, res) => {
         [orderCode, customerEmail || null, customerPhone || null, packageType, packageInfo.duration, packageInfo.price],
         async function(err) {
           try {
-          if (err) {
-            console.error('Database error:', err);
-            return sendResponse(500, {
-              success: false,
-              error: 'Failed to create order: ' + err.message,
-            });
-          }
+            if (err) {
+              console.error('Database error:', err);
+              return sendResponse(500, {
+                success: false,
+                error: 'Failed to create order: ' + err.message,
+              });
+            }
 
           const orderId = this.lastID;
 
