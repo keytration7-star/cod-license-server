@@ -148,6 +148,7 @@ app.get('/api/test-payos', async (req, res) => {
     testResult.test.canCreateLink = testResult_payos.success;
     testResult.test.error = testResult_payos.error || null;
     testResult.test.details = testResult_payos.details || null;
+    testResult.test.requestBody = testResult_payos.requestBody || null; // Thêm request body vào response
 
     res.json({
       success: true,

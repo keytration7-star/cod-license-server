@@ -228,6 +228,7 @@ async function createPaymentLink(orderData) {
       return {
         success: false,
         error: 'Validation failed: ' + validationErrors.join(', '),
+        requestBody: JSON.parse(JSON.stringify(requestBody)), // Clone để trả về
       };
     }
 
@@ -338,6 +339,7 @@ async function createPaymentLink(orderData) {
       success: false,
       error: errorMessage,
       details: error.response?.data,
+      requestBody: requestBody ? JSON.parse(JSON.stringify(requestBody)) : null, // Clone để trả về
     };
   }
 }
