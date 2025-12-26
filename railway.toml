@@ -1,0 +1,14 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "node server.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[env]
+LICENSE_SERVER_URL = "https://cod-license-server-production.up.railway.app"
+PAYOS_CLIENT_ID = "a9d73055-d322-41ce-874c-89499ce1f2a2"
+PAYOS_API_KEY = "f5ef7cf8-94d0-4ca9-836e-daa97ad310c7"
+PAYOS_CHECKSUM_KEY = "fe4ac213e3346430205cce8da26a7edebe56385cbe4e36ed7030ee59f8760395"
+
