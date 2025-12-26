@@ -186,71 +186,75 @@ app.post('/api/create-order', async (req, res) => {
 
           const orderId = this.lastID;
 
-        // Tạo link thanh toán PayOS (chỉ nếu không phải trial)
-        if (packageType === 'trial') {
-          // Trial không cần thanh toán, tạo license ngay
-          try {
-            const licenseData = await license.createLicense(orderId, packageType, packageInfo.duration);
-            
-            // Cập nhật order status
-            db.run(`UPDATE orders SET status = 'completed' WHERE id = ?`, [orderId]);
+          // Tạo link thanh toán PayOS (chỉ nếu không phải trial)
+          if (packageType === 'trial') {
+            // Trial không cần thanh toán, tạo license ngay
+            try {
+              const licenseData = await license.createLicense(orderId, packageType, packageInfo.duration);
+              
+              // Cập nhật order status
+              db.run(`UPDATE orders SET status = 'completed' WHERE id = ?`, [orderId], (updateErr) => {
+                if (updateErr) {
+                  console.error('Error updating trial order status:', updateErr);
+                }
+              });
 
-            return res.json({
-              success: true,
-              orderId,
-              orderCode,
-              licenseKey: licenseData.licenseKey,
-              expiresAt: licenseData.expiresAt,
-              isTrial: true,
-            });
-          } catch (error) {
-            console.error('Create trial license error:', error);
-            return res.status(500).json({
+              return sendResponse(200, {
+                success: true,
+                orderId,
+                orderCode,
+                licenseKey: licenseData.licenseKey,
+                expiresAt: licenseData.expiresAt,
+                isTrial: true,
+              });
+            } catch (error) {
+              console.error('Create trial license error:', error);
+              return sendResponse(500, {
+                success: false,
+                error: 'Failed to create trial license: ' + error.message,
+              });
+            }
+          }
+
+          // Lấy server URL, Railway có thể tự động tạo RAILWAY_SERVICE_COD_LICENSE_SERVER_URL
+          // Nếu không tìm thấy, dùng giá trị fallback từ config.js
+          const serverUrl = process.env.LICENSE_SERVER_URL || 
+                           (process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL ? 
+                             `https://${process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL}` : 
+                             null) ||
+                           config.LICENSE_SERVER_URL ||
+                           'http://localhost:3000';
+          
+          console.log('Creating PayOS payment link:', {
+            orderCode,
+            amount: packageInfo.price,
+            serverUrl,
+          });
+
+          // Tạo link thanh toán PayOS
+          const paymentResult = await payos.createPaymentLink({
+            orderCode: orderCode.toString(),
+            amount: packageInfo.price,
+            description: `Thanh toán gói ${packageInfo.name} - Hệ Thống Đối Soát COD`,
+            returnUrl: `${serverUrl}/payment/success?orderCode=${orderCode}`,
+            cancelUrl: `${serverUrl}/payment/cancel?orderCode=${orderCode}`,
+            items: [
+              {
+                name: packageInfo.name,
+                quantity: 1,
+                price: packageInfo.price,
+              },
+            ],
+          });
+
+          if (!paymentResult.success) {
+            console.error('PayOS payment link creation failed:', paymentResult.error, paymentResult.details);
+            return sendResponse(500, {
               success: false,
-              error: 'Failed to create trial license',
+              error: 'Failed to create payment link: ' + (paymentResult.error || 'Unknown error'),
+              details: paymentResult.details || paymentResult.error,
             });
           }
-        }
-
-        // Lấy server URL, Railway có thể tự động tạo RAILWAY_SERVICE_COD_LICENSE_SERVER_URL
-        // Nếu không tìm thấy, dùng giá trị fallback từ config.js
-        const serverUrl = process.env.LICENSE_SERVER_URL || 
-                         (process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL ? 
-                           `https://${process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL}` : 
-                           null) ||
-                         config.LICENSE_SERVER_URL ||
-                         'http://localhost:3000';
-        
-        console.log('Creating PayOS payment link:', {
-          orderCode,
-          amount: packageInfo.price,
-          serverUrl,
-        });
-
-        // Tạo link thanh toán PayOS
-        const paymentResult = await payos.createPaymentLink({
-          orderCode: orderCode.toString(),
-          amount: packageInfo.price,
-          description: `Thanh toán gói ${packageInfo.name} - Hệ Thống Đối Soát COD`,
-          returnUrl: `${serverUrl}/payment/success?orderCode=${orderCode}`,
-          cancelUrl: `${serverUrl}/payment/cancel?orderCode=${orderCode}`,
-          items: [
-            {
-              name: packageInfo.name,
-              quantity: 1,
-              price: packageInfo.price,
-            },
-          ],
-        });
-
-        if (!paymentResult.success) {
-          console.error('PayOS payment link creation failed:', paymentResult.error, paymentResult.details);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to create payment link: ' + (paymentResult.error || 'Unknown error'),
-            details: paymentResult.details || paymentResult.error,
-          });
-        }
 
           // Lưu payment link ID
           db.run(
