@@ -191,25 +191,26 @@ async function createPaymentLink(orderData) {
       };
     }
 
-    console.log('PayOS createPaymentLink request:', {
+    // Log chi tiết request body
+    console.log('📤 PayOS Request Body (FULL):', JSON.stringify(requestBody, null, 2));
+    console.log('📤 PayOS Request Details:', {
       url: `${PAYOS_API_URL}/payment-requests`,
-      requestBody: JSON.stringify(requestBody, null, 2),
       orderCode: requestBody.orderCode,
       orderCodeType: typeof requestBody.orderCode,
+      orderCodeValue: requestBody.orderCode,
       amount: requestBody.amount,
       amountType: typeof requestBody.amount,
+      amountValue: requestBody.amount,
+      description: requestBody.description,
+      descriptionLength: requestBody.description?.length || 0,
       itemsCount: requestBody.items.length,
-      items: JSON.stringify(requestBody.items, null, 2),
+      items: requestBody.items,
+      itemsTotal: requestBody.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       returnUrl: requestBody.returnUrl,
       cancelUrl: requestBody.cancelUrl,
       hasClientId: !!PAYOS_CLIENT_ID,
       hasApiKey: !!PAYOS_API_KEY,
-      clientIdPrefix: PAYOS_CLIENT_ID?.substring(0, 8) + '...',
-      apiKeyPrefix: PAYOS_API_KEY?.substring(0, 8) + '...',
     });
-    
-    // Log request body để debug
-    console.log('📤 PayOS Request Body:', JSON.stringify(requestBody, null, 2));
 
     const response = await axios.post(
       `${PAYOS_API_URL}/payment-requests`,
