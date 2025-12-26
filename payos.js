@@ -66,14 +66,70 @@ async function createPaymentLink(orderData) {
                      'http://localhost:3000';
 
     // Format request theo PayOS API v2
-    // Sử dụng returnUrl và cancelUrl từ tham số, nếu không có thì tạo từ serverUrl
+    // PayOS yêu cầu:
+    // - orderCode: số nguyên dương (int)
+    // - amount: số nguyên (không có phần thập phân)
+    // - items: mảng các object với name, quantity, price
+    // - returnUrl, cancelUrl: URL hợp lệ
+    
+    // Đảm bảo orderCode là số nguyên dương
+    const orderCodeInt = parseInt(orderCode);
+    if (isNaN(orderCodeInt) || orderCodeInt <= 0) {
+      return {
+        success: false,
+        error: 'orderCode phải là số nguyên dương',
+      };
+    }
+    
+    // Đảm bảo amount là số nguyên (làm tròn xuống)
+    const amountInt = Math.floor(amount);
+    if (isNaN(amountInt) || amountInt <= 0) {
+      return {
+        success: false,
+        error: 'amount phải là số nguyên dương',
+      };
+    }
+    
+    // Validate items
+    if (!Array.isArray(items) || items.length === 0) {
+      return {
+        success: false,
+        error: 'items phải là mảng không rỗng',
+      };
+    }
+    
+    // Validate và format items
+    const formattedItems = items.map(item => ({
+      name: String(item.name || ''),
+      quantity: parseInt(item.quantity || 1),
+      price: Math.floor(item.price || 0),
+    }));
+    
+    // Validate URLs
+    const finalReturnUrl = returnUrl || `${serverUrl}/payment/success`;
+    const finalCancelUrl = cancelUrl || `${serverUrl}/payment/cancel`;
+    
+    if (!finalReturnUrl.startsWith('http://') && !finalReturnUrl.startsWith('https://')) {
+      return {
+        success: false,
+        error: 'returnUrl phải là URL hợp lệ (bắt đầu bằng http:// hoặc https://)',
+      };
+    }
+    
+    if (!finalCancelUrl.startsWith('http://') && !finalCancelUrl.startsWith('https://')) {
+      return {
+        success: false,
+        error: 'cancelUrl phải là URL hợp lệ (bắt đầu bằng http:// hoặc https://)',
+      };
+    }
+    
     const requestBody = {
-      orderCode: parseInt(orderCode),
-      amount: amount,
-      description: description,
-      items: items,
-      cancelUrl: cancelUrl || `${serverUrl}/payment/cancel`,
-      returnUrl: returnUrl || `${serverUrl}/payment/success`,
+      orderCode: orderCodeInt,
+      amount: amountInt,
+      description: description || '',
+      items: formattedItems,
+      cancelUrl: finalCancelUrl,
+      returnUrl: finalReturnUrl,
     };
 
     // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)
@@ -103,8 +159,15 @@ async function createPaymentLink(orderData) {
 
     console.log('PayOS createPaymentLink request:', {
       url: `${PAYOS_API_URL}/payment-requests`,
+      requestBody: JSON.stringify(requestBody, null, 2),
       orderCode: requestBody.orderCode,
+      orderCodeType: typeof requestBody.orderCode,
       amount: requestBody.amount,
+      amountType: typeof requestBody.amount,
+      itemsCount: requestBody.items.length,
+      items: requestBody.items,
+      returnUrl: requestBody.returnUrl,
+      cancelUrl: requestBody.cancelUrl,
       hasClientId: !!PAYOS_CLIENT_ID,
       hasApiKey: !!PAYOS_API_KEY,
       clientIdPrefix: PAYOS_CLIENT_ID?.substring(0, 8) + '...',
