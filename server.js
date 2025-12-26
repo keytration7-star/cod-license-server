@@ -166,15 +166,25 @@ app.post('/api/create-order', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
       [orderCode, customerEmail || null, customerPhone || null, packageType, packageInfo.duration, packageInfo.price],
       async function(err) {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to create order',
-          });
-        }
+        // Đảm bảo response chỉ được gửi một lần
+        let responseSent = false;
+        const sendResponse = (status, data) => {
+          if (!responseSent) {
+            responseSent = true;
+            res.status(status).json(data);
+          }
+        };
 
-        const orderId = this.lastID;
+        try {
+          if (err) {
+            console.error('Database error:', err);
+            return sendResponse(500, {
+              success: false,
+              error: 'Failed to create order: ' + err.message,
+            });
+          }
+
+          const orderId = this.lastID;
 
         // Tạo link thanh toán PayOS (chỉ nếu không phải trial)
         if (packageType === 'trial') {
