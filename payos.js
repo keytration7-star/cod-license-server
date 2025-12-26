@@ -257,6 +257,9 @@ async function createPaymentLink(orderData) {
       apiKeyPrefix: PAYOS_API_KEY ? PAYOS_API_KEY.substring(0, 8) + '...' : 'missing',
     });
 
+    // Clone requestBody trước khi gửi để có thể trả về trong catch nếu lỗi
+    const requestBodyClone = JSON.parse(JSON.stringify(requestBody));
+    
     // Gửi request đến PayOS
     console.log('🚀 Sending request to PayOS...');
     const response = await axios.post(
@@ -344,11 +347,21 @@ async function createPaymentLink(orderData) {
                         JSON.stringify(error.response?.data) ||
                         error.message;
     
+    // Đảm bảo requestBody được clone đúng cách
+    let requestBodyForResponse = null;
+    try {
+      requestBodyForResponse = requestBody ? JSON.parse(JSON.stringify(requestBody)) : null;
+    } catch (e) {
+      console.error('Error cloning requestBody:', e);
+      // Nếu không clone được, thử cách khác
+      requestBodyForResponse = requestBody ? { ...requestBody } : null;
+    }
+    
     return {
       success: false,
       error: errorMessage,
       details: error.response?.data,
-      requestBody: requestBody ? JSON.parse(JSON.stringify(requestBody)) : null, // Clone để trả về
+      requestBody: requestBodyForResponse,
       errorType: error.response ? 'API_ERROR' : 'NETWORK_ERROR',
       statusCode: error.response?.status || null,
     };
