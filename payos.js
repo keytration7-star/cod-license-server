@@ -159,11 +159,18 @@ async function createPaymentLink(orderData) {
       returnUrl: finalReturnUrl, // URL hợp lệ
     };
     
-    // Validate tổng amount phải bằng tổng items
+    // Validate tổng amount phải bằng tổng items (PayOS yêu cầu)
     const totalItemsAmount = formattedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    if (totalItemsAmount !== amountInt) {
-      console.warn(`⚠️ Amount mismatch: total=${amountInt}, itemsTotal=${totalItemsAmount}. Using itemsTotal.`);
+    if (Math.abs(totalItemsAmount - amountInt) > 0) {
+      console.warn(`⚠️ Amount mismatch: total=${amountInt}, itemsTotal=${totalItemsAmount}. Adjusting amount to match items.`);
+      // PayOS yêu cầu amount phải bằng tổng items, nên dùng itemsTotal
       requestBody.amount = totalItemsAmount;
+    }
+    
+    // Đảm bảo description không quá dài (PayOS có thể có giới hạn)
+    if (requestBody.description.length > 255) {
+      requestBody.description = requestBody.description.substring(0, 255);
+      console.warn('⚠️ Description quá dài, đã cắt xuống 255 ký tự');
     }
 
     // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)
