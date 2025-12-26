@@ -321,12 +321,20 @@ async function createPaymentLink(orderData) {
       statusText: error.response?.statusText,
       data: error.response?.data,
       requestBody: requestBody ? JSON.stringify(requestBody, null, 2) : 'N/A',
+      hasRequestBody: !!requestBody,
       fullError: error,
     });
     
     // Log chi tiết response từ PayOS
     if (error.response?.data) {
       console.error('📋 PayOS Error Response:', JSON.stringify(error.response.data, null, 2));
+    }
+    
+    // Log request body nếu có
+    if (requestBody) {
+      console.error('📤 PayOS Request Body that caused error:', JSON.stringify(requestBody, null, 2));
+    } else {
+      console.error('⚠️ Request body is null - error occurred before creating requestBody');
     }
     
     // Trả về error message chi tiết hơn
@@ -341,6 +349,8 @@ async function createPaymentLink(orderData) {
       error: errorMessage,
       details: error.response?.data,
       requestBody: requestBody ? JSON.parse(JSON.stringify(requestBody)) : null, // Clone để trả về
+      errorType: error.response ? 'API_ERROR' : 'NETWORK_ERROR',
+      statusCode: error.response?.status || null,
     };
   }
 }
