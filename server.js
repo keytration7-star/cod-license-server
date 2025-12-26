@@ -41,13 +41,21 @@ app.get('/api/test-payos', async (req, res) => {
     const payosApiKey = process.env.PAYOS_API_KEY;
     const payosChecksumKey = process.env.PAYOS_CHECKSUM_KEY;
     
+    // Lấy tất cả biến môi trường để debug
+    const allEnvKeys = Object.keys(process.env);
+    const payosEnvVars = allEnvKeys.filter(k => k.includes('PAYOS'));
+    const allEnvVarsSample = allEnvKeys.slice(0, 20); // Lấy 20 biến đầu tiên để debug
+    
     console.log('🔍 Test PayOS endpoint - Environment check:', {
       hasClientId: !!payosClientId,
       hasApiKey: !!payosApiKey,
       hasChecksumKey: !!payosChecksumKey,
       clientIdLength: payosClientId?.length || 0,
       apiKeyLength: payosApiKey?.length || 0,
-      allEnvVars: Object.keys(process.env).filter(k => k.includes('PAYOS')),
+      payosEnvVars,
+      totalEnvVars: allEnvKeys.length,
+      sampleEnvVars: allEnvVarsSample,
+      hasLicenseServerUrl: !!process.env.LICENSE_SERVER_URL,
     });
     
     const testResult = {
@@ -58,7 +66,10 @@ app.get('/api/test-payos', async (req, res) => {
         clientIdLength: payosClientId?.length || 0,
         apiKeyLength: payosApiKey?.length || 0,
         apiUrl: process.env.PAYOS_API_URL || 'https://api-merchant.payos.vn/v2',
-        allPayOSEnvVars: Object.keys(process.env).filter(k => k.includes('PAYOS')),
+        allPayOSEnvVars: payosEnvVars,
+        totalEnvVars: allEnvKeys.length,
+        hasLicenseServerUrl: !!process.env.LICENSE_SERVER_URL,
+        sampleEnvVars: allEnvVarsSample, // Để debug xem có biến nào được load không
       },
       test: {
         canCreateLink: false,
