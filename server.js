@@ -262,11 +262,23 @@ app.post('/api/create-order', async (req, res) => {
       message: error.message,
       stack: error.stack,
       fullError: error,
+      errorName: error.name,
+      errorCode: error.code,
     });
+    
+    // Trả về error message chi tiết hơn để debug
+    const errorMessage = error.message || 'Internal server error';
+    const errorDetails = {
+      name: error.name,
+      code: error.code,
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
+    };
+    
     res.status(500).json({
       success: false,
-      error: 'Internal server error: ' + error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      error: 'Internal server error: ' + errorMessage,
+      details: errorDetails,
     });
   }
 });

@@ -82,8 +82,9 @@ async function createPaymentLink(orderData) {
     };
 
     // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)
-    const clientId = PAYOS_CLIENT_ID?.trim?.() || PAYOS_CLIENT_ID || '';
-    const apiKey = PAYOS_API_KEY?.trim?.() || PAYOS_API_KEY || '';
+    // Sử dụng giá trị từ config.js nếu không có trong env
+    const clientId = (PAYOS_CLIENT_ID?.trim?.() || PAYOS_CLIENT_ID || '').toString().trim();
+    const apiKey = (PAYOS_API_KEY?.trim?.() || PAYOS_API_KEY || '').toString().trim();
     
     if (!clientId || !apiKey || clientId === '' || apiKey === '') {
       console.error('PayOS API keys missing or empty:', {
@@ -96,10 +97,12 @@ async function createPaymentLink(orderData) {
         clientIdValue: PAYOS_CLIENT_ID ? (typeof PAYOS_CLIENT_ID === 'string' ? PAYOS_CLIENT_ID.substring(0, 8) + '...' : String(PAYOS_CLIENT_ID).substring(0, 8) + '...') : 'undefined',
         apiKeyValue: PAYOS_API_KEY ? (typeof PAYOS_API_KEY === 'string' ? PAYOS_API_KEY.substring(0, 8) + '...' : String(PAYOS_API_KEY).substring(0, 8) + '...') : 'undefined',
         allEnvVars: Object.keys(process.env).filter(k => k.includes('PAYOS')),
+        // Kiểm tra config.js
+        configClientId: require('./config').PAYOS_CLIENT_ID ? 'exists' : 'missing',
       });
       return {
         success: false,
-        error: 'PayOS API keys chưa được cấu hình. Vui lòng kiểm tra Environment Variables trên Railway.',
+        error: 'PayOS API keys chưa được cấu hình. Vui lòng kiểm tra Environment Variables trên Railway hoặc file config.js.',
       };
     }
 
