@@ -107,11 +107,28 @@ async function createPaymentLink(orderData) {
     }
     
     // Validate và format items
-    const formattedItems = items.map(item => ({
-      name: String(item.name || ''),
-      quantity: parseInt(item.quantity || 1),
-      price: Math.floor(item.price || 0),
-    }));
+    // PayOS yêu cầu items phải có name (string), quantity (int), price (int)
+    const formattedItems = items.map(item => {
+      const itemName = String(item.name || '').trim();
+      const itemQuantity = parseInt(item.quantity || 1);
+      const itemPrice = Math.floor(parseFloat(item.price || 0));
+      
+      if (!itemName || itemName === '') {
+        throw new Error('Item name không được để trống');
+      }
+      if (isNaN(itemQuantity) || itemQuantity <= 0) {
+        throw new Error('Item quantity phải là số nguyên dương');
+      }
+      if (isNaN(itemPrice) || itemPrice <= 0) {
+        throw new Error('Item price phải là số nguyên dương');
+      }
+      
+      return {
+        name: itemName,
+        quantity: itemQuantity,
+        price: itemPrice,
+      };
+    });
     
     // Validate URLs
     const finalReturnUrl = returnUrl || `${serverUrl}/payment/success`;
@@ -132,16 +149,22 @@ async function createPaymentLink(orderData) {
     }
     
     // PayOS API v2 request body format
-    // Theo PayOS API v2, chỉ cần các field sau:
+    // Đảm bảo tất cả field đúng type và format
     const requestBody = {
-      orderCode: orderCodeInt,
-      amount: amountInt,
-      description: description || '',
-      items: formattedItems,
-      cancelUrl: finalCancelUrl,
-      returnUrl: finalReturnUrl,
-      // Không cần expiredAt - PayOS sẽ tự động set thời gian hết hạn
+      orderCode: orderCodeInt, // Phải là số nguyên
+      amount: amountInt, // Phải là số nguyên (VNĐ)
+      description: String(description || '').trim(), // String, không được null
+      items: formattedItems, // Array of objects với name, quantity, price
+      cancelUrl: finalCancelUrl, // URL hợp lệ
+      returnUrl: finalReturnUrl, // URL hợp lệ
     };
+    
+    // Validate tổng amount phải bằng tổng items
+    const totalItemsAmount = formattedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    if (totalItemsAmount !== amountInt) {
+      console.warn(`⚠️ Amount mismatch: total=${amountInt}, itemsTotal=${totalItemsAmount}. Using itemsTotal.`);
+      requestBody.amount = totalItemsAmount;
+    }
 
     // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)
     // Sử dụng giá trị từ config.js nếu không có trong env
