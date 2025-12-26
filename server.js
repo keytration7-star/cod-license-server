@@ -23,6 +23,69 @@ const PACKAGES = {
   '12months': { duration: 365, price: 2499000, name: '12 tháng' },
 };
 
+// API: Health check
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    serverUrl: process.env.LICENSE_SERVER_URL || 'http://localhost:3000',
+  });
+});
+
+// API: Test PayOS connection
+app.get('/api/test-payos', async (req, res) => {
+  try {
+    const payos = require('./payos');
+    const testResult = {
+      config: {
+        hasClientId: !!process.env.PAYOS_CLIENT_ID,
+        hasApiKey: !!process.env.PAYOS_API_KEY,
+        hasChecksumKey: !!process.env.PAYOS_CHECKSUM_KEY,
+        clientIdLength: process.env.PAYOS_CLIENT_ID?.length || 0,
+        apiKeyLength: process.env.PAYOS_API_KEY?.length || 0,
+        apiUrl: process.env.PAYOS_API_URL || 'https://api-merchant.payos.vn/v2',
+      },
+      test: {
+        canCreateLink: false,
+        error: null,
+      },
+    };
+
+    // Test tạo payment link với order code test
+    const testOrderCode = Date.now();
+    const testResult_payos = await payos.createPaymentLink({
+      orderCode: testOrderCode.toString(),
+      amount: 1000, // Test với 1000 VNĐ
+      description: 'Test PayOS Connection',
+      returnUrl: `${process.env.LICENSE_SERVER_URL || 'http://localhost:3000'}/payment/success?orderCode=${testOrderCode}`,
+      cancelUrl: `${process.env.LICENSE_SERVER_URL || 'http://localhost:3000'}/payment/cancel?orderCode=${testOrderCode}`,
+      items: [
+        {
+          name: 'Test Item',
+          quantity: 1,
+          price: 1000,
+        },
+      ],
+    });
+
+    testResult.test.canCreateLink = testResult_payos.success;
+    testResult.test.error = testResult_payos.error || null;
+    testResult.test.details = testResult_payos.details || null;
+
+    res.json({
+      success: true,
+      ...testResult,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+  }
+});
+
 // API: Lấy danh sách gói
 app.get('/api/packages', (req, res) => {
   res.json({
