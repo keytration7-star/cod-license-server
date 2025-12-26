@@ -140,15 +140,28 @@ app.get('/api/packages', (req, res) => {
 
 // API: Tạo đơn hàng và link thanh toán
 app.post('/api/create-order', async (req, res) => {
+  // Đảm bảo response chỉ được gửi một lần
+  let responseSent = false;
+  const sendResponse = (status, data) => {
+    if (!responseSent) {
+      responseSent = true;
+      try {
+        res.status(status).json(data);
+      } catch (err) {
+        console.error('Error sending response:', err);
+      }
+    }
+  };
+
   try {
     console.log('📥 Create order request received:', {
-      packageType: req.body.packageType,
-      hasEmail: !!req.body.customerEmail,
-      hasPhone: !!req.body.customerPhone,
+      packageType: req.body?.packageType,
+      hasEmail: !!req.body?.customerEmail,
+      hasPhone: !!req.body?.customerPhone,
       body: req.body,
     });
     
-    const { packageType, customerEmail, customerPhone, machineId } = req.body;
+    const { packageType, customerEmail, customerPhone, machineId } = req.body || {};
 
     if (!PACKAGES[packageType]) {
       return res.status(400).json({
@@ -161,21 +174,13 @@ app.post('/api/create-order', async (req, res) => {
     const orderCode = Date.now(); // Tạo order code từ timestamp
 
     // Tạo order trong database
-    db.run(
-      `INSERT INTO orders (order_code, customer_email, customer_phone, package_type, package_duration, amount, status)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-      [orderCode, customerEmail || null, customerPhone || null, packageType, packageInfo.duration, packageInfo.price],
-      async function(err) {
-        // Đảm bảo response chỉ được gửi một lần
-        let responseSent = false;
-        const sendResponse = (status, data) => {
-          if (!responseSent) {
-            responseSent = true;
-            res.status(status).json(data);
-          }
-        };
-
-        try {
+    try {
+      db.run(
+        `INSERT INTO orders (order_code, customer_email, customer_phone, package_type, package_duration, amount, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+        [orderCode, customerEmail || null, customerPhone || null, packageType, packageInfo.duration, packageInfo.price],
+        async function(err) {
+          try {
           if (err) {
             console.error('Database error:', err);
             return sendResponse(500, {
@@ -299,9 +304,23 @@ app.post('/api/create-order', async (req, res) => {
             error: 'Internal server error: ' + innerError.message,
             details: process.env.NODE_ENV === 'development' ? innerError.stack : undefined,
           });
+          } catch (innerError) {
+            console.error('Error in create-order callback:', innerError);
+            sendResponse(500, {
+              success: false,
+              error: 'Internal server error: ' + innerError.message,
+              details: process.env.NODE_ENV === 'development' ? innerError.stack : undefined,
+            });
+          }
         }
-      }
-    );
+      );
+    } catch (dbError) {
+      console.error('Database run error:', dbError);
+      sendResponse(500, {
+        success: false,
+        error: 'Database error: ' + dbError.message,
+      });
+    }
   } catch (error) {
     console.error('Create order error:', {
       message: error.message,
@@ -320,7 +339,7 @@ app.post('/api/create-order', async (req, res) => {
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
     };
     
-    res.status(500).json({
+    sendResponse(500, {
       success: false,
       error: 'Internal server error: ' + errorMessage,
       details: errorDetails,
