@@ -439,9 +439,15 @@ app.get('/', (req, res) => {
 
 // Khởi động server
 app.listen(PORT, () => {
+  const serverUrl = process.env.LICENSE_SERVER_URL || `http://localhost:${PORT}`;
   console.log(`🚀 License Server running on port ${PORT}`);
   console.log(`📦 Packages available: ${Object.keys(PACKAGES).join(', ')}`);
-  console.log(`🔗 Webhook URL: ${process.env.LICENSE_SERVER_URL}/api/webhook`);
+  console.log(`🔗 Webhook URL: ${serverUrl}/api/webhook`);
   console.log(`📊 Dashboard: http://localhost:${PORT}`);
+  
+  // Cảnh báo nếu LICENSE_SERVER_URL chưa được set
+  if (!process.env.LICENSE_SERVER_URL) {
+    console.warn('⚠️ WARNING: LICENSE_SERVER_URL is not set! Please set it in Environment Variables.');
+  }
 });
 

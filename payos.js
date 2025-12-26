@@ -30,13 +30,16 @@ async function createPaymentLink(orderData) {
       items = []
     } = orderData;
 
+    // Lấy server URL, nếu không có thì dùng localhost
+    const serverUrl = process.env.LICENSE_SERVER_URL || 'http://localhost:3000';
+    
     const paymentData = {
       orderCode: parseInt(orderCode),
       amount: amount,
       description: description,
       items: items,
-      cancelUrl: cancelUrl || `${process.env.LICENSE_SERVER_URL}/payment/cancel`,
-      returnUrl: returnUrl || `${process.env.LICENSE_SERVER_URL}/payment/success`,
+      cancelUrl: cancelUrl || `${serverUrl}/payment/cancel`,
+      returnUrl: returnUrl || `${serverUrl}/payment/success`,
     };
 
     // PayOS API v2 không yêu cầu checksum trong body khi tạo payment link
