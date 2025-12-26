@@ -105,10 +105,11 @@ app.post('/api/create-order', async (req, res) => {
         });
 
         if (!paymentResult.success) {
+          console.error('PayOS payment link creation failed:', paymentResult.error, paymentResult.details);
           return res.status(500).json({
             success: false,
-            error: 'Failed to create payment link',
-            details: paymentResult.error,
+            error: 'Failed to create payment link: ' + (paymentResult.error || 'Unknown error'),
+            details: paymentResult.details || paymentResult.error,
           });
         }
 

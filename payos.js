@@ -41,9 +41,23 @@ async function createPaymentLink(orderData) {
 
     const checksum = createChecksum(paymentData);
 
+    // PayOS có thể yêu cầu checksum trong body hoặc header
+    // Thử format với checksum trong body trước
+    const requestBody = {
+      ...paymentData,
+      signature: checksum, // Thêm signature vào body
+    };
+
+    console.log('PayOS createPaymentLink request:', {
+      url: `${PAYOS_API_URL}/payment-requests`,
+      body: requestBody,
+      hasClientId: !!PAYOS_CLIENT_ID,
+      hasApiKey: !!PAYOS_API_KEY,
+    });
+
     const response = await axios.post(
       `${PAYOS_API_URL}/payment-requests`,
-      paymentData,
+      requestBody,
       {
         headers: {
           'x-client-id': PAYOS_CLIENT_ID,
@@ -58,10 +72,25 @@ async function createPaymentLink(orderData) {
       data: response.data,
     };
   } catch (error) {
-    console.error('PayOS createPaymentLink error:', error.response?.data || error.message);
+    console.error('PayOS createPaymentLink error:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      fullError: error,
+    });
+    
+    // Trả về error message chi tiết hơn
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.response?.data?.desc ||
+                        JSON.stringify(error.response?.data) ||
+                        error.message;
+    
     return {
       success: false,
-      error: error.response?.data || error.message,
+      error: errorMessage,
+      details: error.response?.data,
     };
   }
 }
