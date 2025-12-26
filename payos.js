@@ -198,6 +198,39 @@ async function createPaymentLink(orderData) {
       };
     }
 
+    // Validate lại một lần nữa trước khi gửi
+    const validationErrors = [];
+    if (typeof requestBody.orderCode !== 'number' || requestBody.orderCode <= 0) {
+      validationErrors.push('orderCode phải là số nguyên dương');
+    }
+    if (typeof requestBody.amount !== 'number' || requestBody.amount <= 0) {
+      validationErrors.push('amount phải là số nguyên dương');
+    }
+    if (!requestBody.description || typeof requestBody.description !== 'string') {
+      validationErrors.push('description phải là string không rỗng');
+    }
+    if (!Array.isArray(requestBody.items) || requestBody.items.length === 0) {
+      validationErrors.push('items phải là mảng không rỗng');
+    }
+    requestBody.items.forEach((item, index) => {
+      if (typeof item.name !== 'string' || !item.name.trim()) {
+        validationErrors.push(`items[${index}].name phải là string không rỗng`);
+      }
+      if (typeof item.quantity !== 'number' || item.quantity <= 0 || !Number.isInteger(item.quantity)) {
+        validationErrors.push(`items[${index}].quantity phải là số nguyên dương`);
+      }
+      if (typeof item.price !== 'number' || item.price <= 0 || !Number.isInteger(item.price)) {
+        validationErrors.push(`items[${index}].price phải là số nguyên dương`);
+      }
+    });
+    if (validationErrors.length > 0) {
+      console.error('❌ Validation errors before sending to PayOS:', validationErrors);
+      return {
+        success: false,
+        error: 'Validation failed: ' + validationErrors.join(', '),
+      };
+    }
+
     // Log chi tiết request body
     console.log('📤 PayOS Request Body (FULL):', JSON.stringify(requestBody, null, 2));
     console.log('📤 PayOS Request Details:', {
@@ -205,20 +238,25 @@ async function createPaymentLink(orderData) {
       orderCode: requestBody.orderCode,
       orderCodeType: typeof requestBody.orderCode,
       orderCodeValue: requestBody.orderCode,
+      orderCodeString: String(requestBody.orderCode),
       amount: requestBody.amount,
       amountType: typeof requestBody.amount,
       amountValue: requestBody.amount,
       description: requestBody.description,
       descriptionLength: requestBody.description?.length || 0,
       itemsCount: requestBody.items.length,
-      items: requestBody.items,
-      itemsTotal: requestBody.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      items: JSON.stringify(requestBody.items, null, 2),
+      itemsTotal: requestBody.items.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       returnUrl: requestBody.returnUrl,
       cancelUrl: requestBody.cancelUrl,
       hasClientId: !!PAYOS_CLIENT_ID,
       hasApiKey: !!PAYOS_API_KEY,
+      clientIdPrefix: PAYOS_CLIENT_ID ? PAYOS_CLIENT_ID.substring(0, 8) + '...' : 'missing',
+      apiKeyPrefix: PAYOS_API_KEY ? PAYOS_API_KEY.substring(0, 8) + '...' : 'missing',
     });
 
+    // Gửi request đến PayOS
+    console.log('🚀 Sending request to PayOS...');
     const response = await axios.post(
       `${PAYOS_API_URL}/payment-requests`,
       requestBody,
@@ -232,9 +270,47 @@ async function createPaymentLink(orderData) {
       }
     );
 
+    // Log response từ PayOS
+    console.log('✅ PayOS Response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      hasData: !!response.data,
+      dataKeys: response.data ? Object.keys(response.data) : [],
+      fullResponse: JSON.stringify(response.data, null, 2),
+    });
+
+    // Kiểm tra response structure
+    if (!response.data) {
+      console.error('❌ PayOS response không có data');
+      return {
+        success: false,
+        error: 'PayOS response không có data',
+        details: response,
+      };
+    }
+
+    // PayOS có thể trả về checkoutUrl ở nhiều vị trí khác nhau
+    const checkoutUrl = response.data?.data?.checkoutUrl || 
+                       response.data?.checkoutUrl || 
+                       response.data?.link;
+    
+    if (!checkoutUrl) {
+      console.error('❌ PayOS response không có checkoutUrl:', JSON.stringify(response.data, null, 2));
+      return {
+        success: false,
+        error: 'PayOS response không có checkoutUrl. Response: ' + JSON.stringify(response.data),
+        details: response.data,
+      };
+    }
+
+    console.log('✅ PayOS checkoutUrl received:', checkoutUrl);
+
     return {
       success: true,
-      data: response.data,
+      data: {
+        ...response.data,
+        checkoutUrl: checkoutUrl, // Đảm bảo có checkoutUrl
+      },
     };
   } catch (error) {
     console.error('❌ PayOS createPaymentLink error:', {
