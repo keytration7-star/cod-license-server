@@ -39,18 +39,22 @@ async function createPaymentLink(orderData) {
       returnUrl: returnUrl || `${process.env.LICENSE_SERVER_URL}/payment/success`,
     };
 
-    const checksum = createChecksum(paymentData);
-
-    // PayOS có thể yêu cầu checksum trong body hoặc header
-    // Thử format với checksum trong body trước
+    // PayOS API v2 không yêu cầu checksum trong body khi tạo payment link
+    // Chỉ cần checksum khi verify webhook
+    // Format request theo PayOS API v2
     const requestBody = {
-      ...paymentData,
-      signature: checksum, // Thêm signature vào body
+      orderCode: parseInt(orderCode),
+      amount: amount,
+      description: description,
+      items: items,
+      cancelUrl: cancelUrl || `${process.env.LICENSE_SERVER_URL}/payment/cancel`,
+      returnUrl: returnUrl || `${process.env.LICENSE_SERVER_URL}/payment/success`,
     };
 
     console.log('PayOS createPaymentLink request:', {
       url: `${PAYOS_API_URL}/payment-requests`,
-      body: requestBody,
+      orderCode: requestBody.orderCode,
+      amount: requestBody.amount,
       hasClientId: !!PAYOS_CLIENT_ID,
       hasApiKey: !!PAYOS_API_KEY,
     });
