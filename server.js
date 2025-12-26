@@ -34,6 +34,13 @@ app.get('/api/packages', (req, res) => {
 // API: Tạo đơn hàng và link thanh toán
 app.post('/api/create-order', async (req, res) => {
   try {
+    console.log('📥 Create order request received:', {
+      packageType: req.body.packageType,
+      hasEmail: !!req.body.customerEmail,
+      hasPhone: !!req.body.customerPhone,
+      body: req.body,
+    });
+    
     const { packageType, customerEmail, customerPhone, machineId } = req.body;
 
     if (!PACKAGES[packageType]) {

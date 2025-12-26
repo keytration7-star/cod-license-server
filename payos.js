@@ -7,6 +7,16 @@ const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY;
 // PayOS API endpoint - thử cả 2 URL
 const PAYOS_API_URL = process.env.PAYOS_API_URL || 'https://api-merchant.payos.vn/v2';
 
+// Log PayOS config khi module load (chỉ log prefix để bảo mật)
+console.log('🔑 PayOS Config loaded:', {
+  hasClientId: !!PAYOS_CLIENT_ID,
+  hasApiKey: !!PAYOS_API_KEY,
+  hasChecksumKey: !!PAYOS_CHECKSUM_KEY,
+  clientIdLength: PAYOS_CLIENT_ID?.length || 0,
+  apiKeyLength: PAYOS_API_KEY?.length || 0,
+  apiUrl: PAYOS_API_URL,
+});
+
 /**
  * Tạo chữ ký checksum
  */
