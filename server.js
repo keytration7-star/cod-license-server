@@ -88,13 +88,22 @@ app.post('/api/create-order', async (req, res) => {
           }
         }
 
+        // Lấy server URL, nếu không có thì dùng localhost
+        const serverUrl = process.env.LICENSE_SERVER_URL || 'http://localhost:3000';
+        
+        console.log('Creating PayOS payment link:', {
+          orderCode,
+          amount: packageInfo.price,
+          serverUrl,
+        });
+
         // Tạo link thanh toán PayOS
         const paymentResult = await payos.createPaymentLink({
           orderCode: orderCode.toString(),
           amount: packageInfo.price,
           description: `Thanh toán gói ${packageInfo.name} - Hệ Thống Đối Soát COD`,
-          returnUrl: `${process.env.LICENSE_SERVER_URL}/payment/success?orderCode=${orderCode}`,
-          cancelUrl: `${process.env.LICENSE_SERVER_URL}/payment/cancel?orderCode=${orderCode}`,
+          returnUrl: `${serverUrl}/payment/success?orderCode=${orderCode}`,
+          cancelUrl: `${serverUrl}/payment/cancel?orderCode=${orderCode}`,
           items: [
             {
               name: packageInfo.name,
