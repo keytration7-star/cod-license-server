@@ -47,6 +47,7 @@ function createChecksum(data) {
  * Tạo link thanh toán PayOS
  */
 async function createPaymentLink(orderData) {
+  let requestBody = null; // Khai báo ở ngoài để có thể truy cập trong catch
   try {
     const {
       orderCode,
@@ -150,7 +151,7 @@ async function createPaymentLink(orderData) {
     
     // PayOS API v2 request body format
     // Đảm bảo tất cả field đúng type và format
-    const requestBody = {
+    requestBody = {
       orderCode: orderCodeInt, // Phải là số nguyên
       amount: amountInt, // Phải là số nguyên (VNĐ)
       description: String(description || '').trim(), // String, không được null
