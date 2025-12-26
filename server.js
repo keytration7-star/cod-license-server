@@ -234,14 +234,17 @@ app.post('/api/create-order', async (req, res) => {
                              config.LICENSE_SERVER_URL ||
                              'http://localhost:3000';
             
-            console.log('Creating PayOS payment link:', {
+            console.log('🔗 Creating PayOS payment link:', {
               orderCode,
+              orderCodeType: typeof orderCode,
               amount: packageInfo.price,
+              amountType: typeof packageInfo.price,
               serverUrl,
+              packageName: packageInfo.name,
             });
 
             // Tạo link thanh toán PayOS
-            const paymentResult = await payos.createPaymentLink({
+            const paymentLinkData = {
               orderCode: orderCode.toString(),
               amount: packageInfo.price,
               description: `Thanh toán gói ${packageInfo.name} - Hệ Thống Đối Soát COD`,
@@ -254,6 +257,20 @@ app.post('/api/create-order', async (req, res) => {
                   price: packageInfo.price,
                 },
               ],
+            };
+            
+            console.log('📤 PayOS Payment Link Data:', JSON.stringify(paymentLinkData, null, 2));
+            
+            const paymentResult = await payos.createPaymentLink(paymentLinkData);
+            
+            console.log('📥 PayOS Payment Result:', {
+              success: paymentResult.success,
+              hasError: !!paymentResult.error,
+              error: paymentResult.error,
+              hasDetails: !!paymentResult.details,
+              details: paymentResult.details ? JSON.stringify(paymentResult.details, null, 2) : null,
+              hasData: !!paymentResult.data,
+              dataKeys: paymentResult.data ? Object.keys(paymentResult.data) : [],
             });
 
             if (!paymentResult.success) {
