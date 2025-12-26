@@ -55,12 +55,28 @@ async function createPaymentLink(orderData) {
       returnUrl: returnUrl || `${process.env.LICENSE_SERVER_URL}/payment/success`,
     };
 
+    // Kiểm tra API keys trước khi gọi
+    if (!PAYOS_CLIENT_ID || !PAYOS_API_KEY) {
+      console.error('PayOS API keys missing:', {
+        hasClientId: !!PAYOS_CLIENT_ID,
+        hasApiKey: !!PAYOS_API_KEY,
+        clientIdLength: PAYOS_CLIENT_ID?.length || 0,
+        apiKeyLength: PAYOS_API_KEY?.length || 0,
+      });
+      return {
+        success: false,
+        error: 'PayOS API keys chưa được cấu hình. Vui lòng kiểm tra Environment Variables trên Railway.',
+      };
+    }
+
     console.log('PayOS createPaymentLink request:', {
       url: `${PAYOS_API_URL}/payment-requests`,
       orderCode: requestBody.orderCode,
       amount: requestBody.amount,
       hasClientId: !!PAYOS_CLIENT_ID,
       hasApiKey: !!PAYOS_API_KEY,
+      clientIdPrefix: PAYOS_CLIENT_ID?.substring(0, 8) + '...',
+      apiKeyPrefix: PAYOS_API_KEY?.substring(0, 8) + '...',
     });
 
     const response = await axios.post(
