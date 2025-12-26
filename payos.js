@@ -160,6 +160,9 @@ async function createPaymentLink(orderData) {
       returnUrl: finalReturnUrl, // URL hợp lệ
     };
     
+    // Clone requestBody ngay sau khi tạo để đảm bảo có sẵn trong mọi trường hợp
+    const requestBodyForResponse = JSON.parse(JSON.stringify(requestBody));
+    
     // Validate tổng amount phải bằng tổng items (PayOS yêu cầu)
     const totalItemsAmount = formattedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     if (Math.abs(totalItemsAmount - amountInt) > 0) {
@@ -257,9 +260,6 @@ async function createPaymentLink(orderData) {
       apiKeyPrefix: PAYOS_API_KEY ? PAYOS_API_KEY.substring(0, 8) + '...' : 'missing',
     });
 
-    // Clone requestBody trước khi gửi để có thể trả về trong catch nếu lỗi
-    const requestBodyClone = JSON.parse(JSON.stringify(requestBody));
-    
     // Gửi request đến PayOS
     console.log('🚀 Sending request to PayOS...');
     const response = await axios.post(
@@ -301,13 +301,11 @@ async function createPaymentLink(orderData) {
     
     if (!checkoutUrl) {
       console.error('❌ PayOS response không có checkoutUrl:', JSON.stringify(response.data, null, 2));
-      // Clone requestBody để trả về trong error
-      const requestBodyClone = JSON.parse(JSON.stringify(requestBody));
       return {
         success: false,
         error: 'PayOS response không có checkoutUrl. Response: ' + JSON.stringify(response.data),
         details: response.data,
-        requestBody: requestBodyClone,
+        requestBody: requestBodyForResponse, // Sử dụng clone đã tạo sẵn
       };
     }
 
@@ -350,21 +348,22 @@ async function createPaymentLink(orderData) {
                         JSON.stringify(error.response?.data) ||
                         error.message;
     
-    // Đảm bảo requestBody được clone đúng cách
-    let requestBodyForResponse = null;
-    try {
-      requestBodyForResponse = requestBody ? JSON.parse(JSON.stringify(requestBody)) : null;
-    } catch (e) {
-      console.error('Error cloning requestBody:', e);
-      // Nếu không clone được, thử cách khác
-      requestBodyForResponse = requestBody ? { ...requestBody } : null;
+    // Sử dụng requestBodyForResponse nếu đã có, nếu không thì clone lại
+    let requestBodyForError = requestBodyForResponse || null;
+    if (!requestBodyForError && requestBody) {
+      try {
+        requestBodyForError = JSON.parse(JSON.stringify(requestBody));
+      } catch (e) {
+        console.error('Error cloning requestBody in catch:', e);
+        requestBodyForError = { ...requestBody };
+      }
     }
     
     return {
       success: false,
       error: errorMessage,
       details: error.response?.data,
-      requestBody: requestBodyForResponse,
+      requestBody: requestBodyForError,
       errorType: error.response ? 'API_ERROR' : 'NETWORK_ERROR',
       statusCode: error.response?.status || null,
     };
