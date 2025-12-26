@@ -4,7 +4,8 @@ const axios = require('axios');
 const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID;
 const PAYOS_API_KEY = process.env.PAYOS_API_KEY;
 const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY;
-const PAYOS_API_URL = 'https://api.payos.vn/v2';
+// PayOS API endpoint - thử cả 2 URL
+const PAYOS_API_URL = process.env.PAYOS_API_URL || 'https://api-merchant.payos.vn/v2';
 
 /**
  * Tạo chữ ký checksum
@@ -71,6 +72,7 @@ async function createPaymentLink(orderData) {
           'x-api-key': PAYOS_API_KEY,
           'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 seconds timeout
       }
     );
 
