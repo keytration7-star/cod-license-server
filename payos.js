@@ -301,10 +301,13 @@ async function createPaymentLink(orderData) {
     
     if (!checkoutUrl) {
       console.error('❌ PayOS response không có checkoutUrl:', JSON.stringify(response.data, null, 2));
+      // Clone requestBody để trả về trong error
+      const requestBodyClone = JSON.parse(JSON.stringify(requestBody));
       return {
         success: false,
         error: 'PayOS response không có checkoutUrl. Response: ' + JSON.stringify(response.data),
         details: response.data,
+        requestBody: requestBodyClone,
       };
     }
 
