@@ -438,7 +438,7 @@ app.get('/', (req, res) => {
 });
 
 // Khởi động server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   const serverUrl = process.env.LICENSE_SERVER_URL || `http://localhost:${PORT}`;
   console.log(`🚀 License Server running on port ${PORT}`);
   console.log(`📦 Packages available: ${Object.keys(PACKAGES).join(', ')}`);
@@ -449,5 +449,22 @@ app.listen(PORT, () => {
   if (!process.env.LICENSE_SERVER_URL) {
     console.warn('⚠️ WARNING: LICENSE_SERVER_URL is not set! Please set it in Environment Variables.');
   }
+});
+
+// Xử lý SIGTERM signal để graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
 });
 
