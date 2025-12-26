@@ -112,12 +112,20 @@ app.get('/api/test-payos', async (req, res) => {
     // Sử dụng order code nhỏ hơn để tránh vấn đề
     const testOrderCode = Math.floor(Date.now() / 1000); // Unix timestamp (10 chữ số)
     const testAmount = 1000; // Test với 1000 VNĐ
-    const testResult_payos = await payos.createPaymentLink({
+    
+    const serverUrl = process.env.LICENSE_SERVER_URL || 
+                     (process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL ? 
+                       `https://${process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL}` : 
+                       null) ||
+                     config.LICENSE_SERVER_URL ||
+                     'http://localhost:3000';
+    
+    const testPaymentLinkData = {
       orderCode: testOrderCode.toString(),
       amount: testAmount,
       description: 'Test PayOS Connection',
-      returnUrl: `${process.env.LICENSE_SERVER_URL || 'http://localhost:3000'}/payment/success?orderCode=${testOrderCode}`,
-      cancelUrl: `${process.env.LICENSE_SERVER_URL || 'http://localhost:3000'}/payment/cancel?orderCode=${testOrderCode}`,
+      returnUrl: `${serverUrl}/payment/success?orderCode=${testOrderCode}`,
+      cancelUrl: `${serverUrl}/payment/cancel?orderCode=${testOrderCode}`,
       items: [
         {
           name: 'Test Item',
@@ -125,6 +133,16 @@ app.get('/api/test-payos', async (req, res) => {
           price: testAmount, // Đảm bảo price * quantity = amount
         },
       ],
+    };
+    
+    console.log('🧪 Test PayOS - Payment Link Data:', JSON.stringify(testPaymentLinkData, null, 2));
+    
+    const testResult_payos = await payos.createPaymentLink(testPaymentLinkData);
+    
+    console.log('🧪 Test PayOS - Result:', {
+      success: testResult_payos.success,
+      error: testResult_payos.error,
+      details: testResult_payos.details ? JSON.stringify(testResult_payos.details, null, 2) : null,
     });
 
     testResult.test.canCreateLink = testResult_payos.success;
