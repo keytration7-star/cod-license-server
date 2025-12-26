@@ -256,17 +256,6 @@ app.post('/api/create-order', async (req, res) => {
             });
           }
 
-          // Lưu payment link ID
-          db.run(
-            `UPDATE orders SET payos_payment_link_id = ? WHERE id = ?`,
-            [paymentResult.data.data.paymentLinkId, orderId],
-            (updateErr) => {
-              if (updateErr) {
-                console.error('Error updating order with payment link ID:', updateErr);
-              }
-            }
-          );
-
           // PayOS response structure: response.data.data.checkoutUrl hoặc response.data.checkoutUrl
           const checkoutUrl = paymentResult.data?.data?.checkoutUrl || 
                              paymentResult.data?.checkoutUrl || 
@@ -281,6 +270,19 @@ app.post('/api/create-order', async (req, res) => {
               success: false,
               error: 'PayOS response không có checkoutUrl. Response: ' + JSON.stringify(paymentResult.data),
             });
+          }
+
+          // Lưu payment link ID (nếu có)
+          if (paymentLinkId) {
+            db.run(
+              `UPDATE orders SET payos_payment_link_id = ? WHERE id = ?`,
+              [paymentLinkId, orderId],
+              (updateErr) => {
+                if (updateErr) {
+                  console.error('Error updating order with payment link ID:', updateErr);
+                }
+              }
+            );
           }
 
           sendResponse(200, {
