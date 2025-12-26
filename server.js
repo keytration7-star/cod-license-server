@@ -648,6 +648,7 @@ const server = app.listen(PORT, () => {
                        (process.env.RAILWAY_SERVICE_PAYOS_CLIENT_ID ? 'Railway Service Variables' : 
                         'Fallback Config (config.js)');
   console.log(`⚙️  Config source: ${configSource}`);
+  console.log(`✅ Server started successfully at ${new Date().toISOString()}`);
 });
 
 // Xử lý SIGTERM signal để graceful shutdown
