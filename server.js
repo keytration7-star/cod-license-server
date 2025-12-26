@@ -36,15 +36,29 @@ app.get('/api/health', (req, res) => {
 // API: Test PayOS connection
 app.get('/api/test-payos', async (req, res) => {
   try {
-    const payos = require('./payos');
+    // Kiểm tra biến môi trường trực tiếp
+    const payosClientId = process.env.PAYOS_CLIENT_ID;
+    const payosApiKey = process.env.PAYOS_API_KEY;
+    const payosChecksumKey = process.env.PAYOS_CHECKSUM_KEY;
+    
+    console.log('🔍 Test PayOS endpoint - Environment check:', {
+      hasClientId: !!payosClientId,
+      hasApiKey: !!payosApiKey,
+      hasChecksumKey: !!payosChecksumKey,
+      clientIdLength: payosClientId?.length || 0,
+      apiKeyLength: payosApiKey?.length || 0,
+      allEnvVars: Object.keys(process.env).filter(k => k.includes('PAYOS')),
+    });
+    
     const testResult = {
       config: {
-        hasClientId: !!process.env.PAYOS_CLIENT_ID,
-        hasApiKey: !!process.env.PAYOS_API_KEY,
-        hasChecksumKey: !!process.env.PAYOS_CHECKSUM_KEY,
-        clientIdLength: process.env.PAYOS_CLIENT_ID?.length || 0,
-        apiKeyLength: process.env.PAYOS_API_KEY?.length || 0,
+        hasClientId: !!payosClientId,
+        hasApiKey: !!payosApiKey,
+        hasChecksumKey: !!payosChecksumKey,
+        clientIdLength: payosClientId?.length || 0,
+        apiKeyLength: payosApiKey?.length || 0,
         apiUrl: process.env.PAYOS_API_URL || 'https://api-merchant.payos.vn/v2',
+        allPayOSEnvVars: Object.keys(process.env).filter(k => k.includes('PAYOS')),
       },
       test: {
         canCreateLink: false,
