@@ -252,19 +252,32 @@ app.post('/api/create-order', async (req, res) => {
           });
         }
 
-        // Lưu payment link ID
-        db.run(
-          `UPDATE orders SET payos_payment_link_id = ? WHERE id = ?`,
-          [paymentResult.data.data.paymentLinkId, orderId]
-        );
+          // Lưu payment link ID
+          db.run(
+            `UPDATE orders SET payos_payment_link_id = ? WHERE id = ?`,
+            [paymentResult.data.data.paymentLinkId, orderId],
+            (updateErr) => {
+              if (updateErr) {
+                console.error('Error updating order with payment link ID:', updateErr);
+              }
+            }
+          );
 
-        res.json({
-          success: true,
-          orderId,
-          orderCode,
-          paymentLink: paymentResult.data.data.checkoutUrl,
-          paymentLinkId: paymentResult.data.data.paymentLinkId,
-        });
+          sendResponse(200, {
+            success: true,
+            orderId,
+            orderCode,
+            paymentLink: paymentResult.data.data.checkoutUrl,
+            paymentLinkId: paymentResult.data.data.paymentLinkId,
+          });
+        } catch (innerError) {
+          console.error('Error in create-order callback:', innerError);
+          sendResponse(500, {
+            success: false,
+            error: 'Internal server error: ' + innerError.message,
+            details: process.env.NODE_ENV === 'development' ? innerError.stack : undefined,
+          });
+        }
       }
     );
   } catch (error) {
