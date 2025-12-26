@@ -129,10 +129,15 @@ app.post('/api/create-order', async (req, res) => {
       }
     );
   } catch (error) {
-    console.error('Create order error:', error);
+    console.error('Create order error:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: error,
+    });
     res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: 'Internal server error: ' + error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 });
