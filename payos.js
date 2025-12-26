@@ -73,12 +73,20 @@ async function createPaymentLink(orderData) {
     // - returnUrl, cancelUrl: URL hợp lệ
     
     // Đảm bảo orderCode là số nguyên dương
-    const orderCodeInt = parseInt(orderCode);
+    // PayOS yêu cầu orderCode phải là số nguyên dương và không quá lớn
+    // Lấy 10 chữ số cuối của timestamp để tránh số quá lớn
+    let orderCodeInt = parseInt(orderCode);
     if (isNaN(orderCodeInt) || orderCodeInt <= 0) {
       return {
         success: false,
         error: 'orderCode phải là số nguyên dương',
       };
+    }
+    
+    // Giới hạn orderCode trong phạm vi hợp lệ (PayOS có thể có giới hạn)
+    // Nếu orderCode quá lớn, lấy 10 chữ số cuối
+    if (orderCodeInt > 9999999999) {
+      orderCodeInt = parseInt(orderCode.toString().slice(-10));
     }
     
     // Đảm bảo amount là số nguyên (làm tròn xuống)
@@ -123,6 +131,10 @@ async function createPaymentLink(orderData) {
       };
     }
     
+    // PayOS API v2 request body format
+    // Thêm expiredAt (thời gian hết hạn - 24 giờ từ bây giờ)
+    const expiredAt = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 giờ sau
+    
     const requestBody = {
       orderCode: orderCodeInt,
       amount: amountInt,
@@ -130,6 +142,7 @@ async function createPaymentLink(orderData) {
       items: formattedItems,
       cancelUrl: finalCancelUrl,
       returnUrl: finalReturnUrl,
+      expiredAt: expiredAt, // Thêm field expiredAt (Unix timestamp)
     };
 
     // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)
