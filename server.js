@@ -297,13 +297,6 @@ app.post('/api/create-order', async (req, res) => {
             paymentLink: checkoutUrl,
             paymentLinkId: paymentLinkId,
           });
-        } catch (innerError) {
-          console.error('Error in create-order callback:', innerError);
-          sendResponse(500, {
-            success: false,
-            error: 'Internal server error: ' + innerError.message,
-            details: process.env.NODE_ENV === 'development' ? innerError.stack : undefined,
-          });
           } catch (innerError) {
             console.error('Error in create-order callback:', innerError);
             sendResponse(500, {
