@@ -44,7 +44,17 @@ app.get('/api/test-payos', async (req, res) => {
     // Lấy tất cả biến môi trường để debug
     const allEnvKeys = Object.keys(process.env);
     const payosEnvVars = allEnvKeys.filter(k => k.includes('PAYOS'));
-    const allEnvVarsSample = allEnvKeys.slice(0, 20); // Lấy 20 biến đầu tiên để debug
+    const licenseEnvVars = allEnvKeys.filter(k => k.includes('LICENSE'));
+    const railwayServiceVars = allEnvKeys.filter(k => k.startsWith('RAILWAY_SERVICE_'));
+    const allEnvVarsSample = allEnvKeys.slice(0, 30); // Lấy 30 biến đầu tiên để debug
+    
+    // Tìm biến có thể là PayOS keys với prefix khác
+    const possiblePayOSVars = allEnvKeys.filter(k => 
+      k.toUpperCase().includes('PAYOS') || 
+      k.toUpperCase().includes('CLIENT_ID') || 
+      k.toUpperCase().includes('API_KEY') ||
+      k.toUpperCase().includes('CHECKSUM')
+    );
     
     console.log('🔍 Test PayOS endpoint - Environment check:', {
       hasClientId: !!payosClientId,
@@ -53,9 +63,13 @@ app.get('/api/test-payos', async (req, res) => {
       clientIdLength: payosClientId?.length || 0,
       apiKeyLength: payosApiKey?.length || 0,
       payosEnvVars,
+      licenseEnvVars,
+      railwayServiceVars,
+      possiblePayOSVars,
       totalEnvVars: allEnvKeys.length,
       sampleEnvVars: allEnvVarsSample,
       hasLicenseServerUrl: !!process.env.LICENSE_SERVER_URL,
+      licenseServerUrlValue: process.env.LICENSE_SERVER_URL || process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL || 'not found',
     });
     
     const testResult = {
@@ -67,8 +81,12 @@ app.get('/api/test-payos', async (req, res) => {
         apiKeyLength: payosApiKey?.length || 0,
         apiUrl: process.env.PAYOS_API_URL || 'https://api-merchant.payos.vn/v2',
         allPayOSEnvVars: payosEnvVars,
+        licenseEnvVars: licenseEnvVars,
+        railwayServiceVars: railwayServiceVars,
+        possiblePayOSVars: possiblePayOSVars,
         totalEnvVars: allEnvKeys.length,
         hasLicenseServerUrl: !!process.env.LICENSE_SERVER_URL,
+        licenseServerUrlValue: process.env.LICENSE_SERVER_URL || process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL || 'not found',
         sampleEnvVars: allEnvVarsSample, // Để debug xem có biến nào được load không
       },
       test: {
