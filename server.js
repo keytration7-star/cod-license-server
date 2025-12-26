@@ -661,6 +661,7 @@ const server = app.listen(PORT, () => {
                         'Fallback Config (config.js)');
   console.log(`⚙️  Config source: ${configSource}`);
   console.log(`✅ Server started successfully at ${new Date().toISOString()}`);
+  console.log(`🔧 Server version: 2.0.0 - All syntax errors fixed`);
 });
 
 // Xử lý SIGTERM signal để graceful shutdown
