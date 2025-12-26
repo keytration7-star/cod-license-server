@@ -132,9 +132,7 @@ async function createPaymentLink(orderData) {
     }
     
     // PayOS API v2 request body format
-    // Thêm expiredAt (thời gian hết hạn - 24 giờ từ bây giờ)
-    const expiredAt = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 giờ sau
-    
+    // Theo PayOS API v2, chỉ cần các field sau:
     const requestBody = {
       orderCode: orderCodeInt,
       amount: amountInt,
@@ -142,7 +140,7 @@ async function createPaymentLink(orderData) {
       items: formattedItems,
       cancelUrl: finalCancelUrl,
       returnUrl: finalReturnUrl,
-      expiredAt: expiredAt, // Thêm field expiredAt (Unix timestamp)
+      // Không cần expiredAt - PayOS sẽ tự động set thời gian hết hạn
     };
 
     // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)
@@ -178,7 +176,7 @@ async function createPaymentLink(orderData) {
       amount: requestBody.amount,
       amountType: typeof requestBody.amount,
       itemsCount: requestBody.items.length,
-      items: requestBody.items,
+      items: JSON.stringify(requestBody.items, null, 2),
       returnUrl: requestBody.returnUrl,
       cancelUrl: requestBody.cancelUrl,
       hasClientId: !!PAYOS_CLIENT_ID,
@@ -186,6 +184,9 @@ async function createPaymentLink(orderData) {
       clientIdPrefix: PAYOS_CLIENT_ID?.substring(0, 8) + '...',
       apiKeyPrefix: PAYOS_API_KEY?.substring(0, 8) + '...',
     });
+    
+    // Log request body để debug
+    console.log('📤 PayOS Request Body:', JSON.stringify(requestBody, null, 2));
 
     const response = await axios.post(
       `${PAYOS_API_URL}/payment-requests`,
@@ -205,18 +206,24 @@ async function createPaymentLink(orderData) {
       data: response.data,
     };
   } catch (error) {
-    console.error('PayOS createPaymentLink error:', {
+    console.error('❌ PayOS createPaymentLink error:', {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
+      requestBody: requestBody ? JSON.stringify(requestBody, null, 2) : 'N/A',
       fullError: error,
     });
     
+    // Log chi tiết response từ PayOS
+    if (error.response?.data) {
+      console.error('📋 PayOS Error Response:', JSON.stringify(error.response.data, null, 2));
+    }
+    
     // Trả về error message chi tiết hơn
-    const errorMessage = error.response?.data?.message || 
+    const errorMessage = error.response?.data?.desc || 
+                        error.response?.data?.message || 
                         error.response?.data?.error || 
-                        error.response?.data?.desc ||
                         JSON.stringify(error.response?.data) ||
                         error.message;
     
