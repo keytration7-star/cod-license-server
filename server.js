@@ -571,16 +571,24 @@ app.get('/', (req, res) => {
 
 // Khởi động server
 const server = app.listen(PORT, () => {
-  const serverUrl = process.env.LICENSE_SERVER_URL || `http://localhost:${PORT}`;
+  // Railway có thể tự động tạo RAILWAY_SERVICE_COD_LICENSE_SERVER_URL
+  // Nếu không tìm thấy, dùng giá trị fallback từ config.js
+  const serverUrl = process.env.LICENSE_SERVER_URL || 
+                   (process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL ? 
+                     `https://${process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL}` : 
+                     null) ||
+                   config.LICENSE_SERVER_URL ||
+                   `http://localhost:${PORT}`;
   console.log(`🚀 License Server running on port ${PORT}`);
   console.log(`📦 Packages available: ${Object.keys(PACKAGES).join(', ')}`);
   console.log(`🔗 Webhook URL: ${serverUrl}/api/webhook`);
   console.log(`📊 Dashboard: http://localhost:${PORT}`);
   
-  // Cảnh báo nếu LICENSE_SERVER_URL chưa được set
-  if (!process.env.LICENSE_SERVER_URL) {
-    console.warn('⚠️ WARNING: LICENSE_SERVER_URL is not set! Please set it in Environment Variables.');
-  }
+  // Thông báo nguồn config
+  const configSource = process.env.PAYOS_CLIENT_ID ? 'Environment Variables' : 
+                       (process.env.RAILWAY_SERVICE_PAYOS_CLIENT_ID ? 'Railway Service Variables' : 
+                        'Fallback Config (config.js)');
+  console.log(`⚙️  Config source: ${configSource}`);
 });
 
 // Xử lý SIGTERM signal để graceful shutdown
