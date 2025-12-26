@@ -5,9 +5,10 @@ const bodyParser = require('body-parser');
 const db = require('./database');
 const payos = require('./payos');
 const license = require('./license');
+const config = require('./config');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || config.PORT || 3000;
 
 // Middleware
 app.use(cors());
