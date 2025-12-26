@@ -201,8 +201,12 @@ app.post('/api/create-order', async (req, res) => {
           }
         }
 
-        // Lấy server URL, nếu không có thì dùng localhost
-        const serverUrl = process.env.LICENSE_SERVER_URL || 'http://localhost:3000';
+        // Lấy server URL, Railway có thể tự động tạo RAILWAY_SERVICE_COD_LICENSE_SERVER_URL
+        const serverUrl = process.env.LICENSE_SERVER_URL || 
+                         process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL || 
+                         (process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL ? 
+                           `https://${process.env.RAILWAY_SERVICE_COD_LICENSE_SERVER_URL}` : 
+                           'http://localhost:3000');
         
         console.log('Creating PayOS payment link:', {
           orderCode,

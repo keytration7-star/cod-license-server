@@ -1,11 +1,13 @@
 const crypto = require('crypto');
 const axios = require('axios');
 
-const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID;
-const PAYOS_API_KEY = process.env.PAYOS_API_KEY;
-const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY;
+// Railway có thể tự động thêm prefix RAILWAY_SERVICE_ cho service variables
+// Kiểm tra cả tên biến thường và tên biến có prefix
+const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || process.env.RAILWAY_SERVICE_PAYOS_CLIENT_ID;
+const PAYOS_API_KEY = process.env.PAYOS_API_KEY || process.env.RAILWAY_SERVICE_PAYOS_API_KEY;
+const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY || process.env.RAILWAY_SERVICE_PAYOS_CHECKSUM_KEY;
 // PayOS API endpoint - thử cả 2 URL
-const PAYOS_API_URL = process.env.PAYOS_API_URL || 'https://api-merchant.payos.vn/v2';
+const PAYOS_API_URL = process.env.PAYOS_API_URL || process.env.RAILWAY_SERVICE_PAYOS_API_URL || 'https://api-merchant.payos.vn/v2';
 
 // Log PayOS config khi module load (chỉ log prefix để bảo mật)
 console.log('🔑 PayOS Config loaded:', {
