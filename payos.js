@@ -435,7 +435,7 @@ async function createPaymentLink(orderData) {
       }
     }
     
-    return {
+    const errorResponse = {
       success: false,
       error: errorMessage,
       details: error.response?.data,
@@ -443,6 +443,15 @@ async function createPaymentLink(orderData) {
       errorType: error.response ? 'API_ERROR' : 'NETWORK_ERROR',
       statusCode: error.response?.status || null,
     };
+    
+    // Thêm signatureDataString nếu có
+    if (requestBodyForError && requestBodyForError._signatureDataString) {
+      errorResponse.signatureDataString = requestBodyForError._signatureDataString;
+      // Xóa _signatureDataString khỏi requestBody để không gửi lên PayOS
+      delete requestBodyForError._signatureDataString;
+    }
+    
+    return errorResponse;
   }
 }
 
