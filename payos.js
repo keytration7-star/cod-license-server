@@ -151,10 +151,12 @@ async function createPaymentLink(orderData) {
     
     // PayOS API v2 request body format
     // Đảm bảo tất cả field đúng type và format
+    // Lưu ý: PayOS yêu cầu description không được rỗng
+    const finalDescription = String(description || 'Payment').trim() || 'Payment';
     requestBody = {
       orderCode: orderCodeInt, // Phải là số nguyên
       amount: amountInt, // Phải là số nguyên (VNĐ)
-      description: String(description || '').trim(), // String, không được null
+      description: finalDescription, // String, không được null hoặc rỗng
       items: formattedItems, // Array of objects với name, quantity, price
       cancelUrl: finalCancelUrl, // URL hợp lệ
       returnUrl: finalReturnUrl, // URL hợp lệ
