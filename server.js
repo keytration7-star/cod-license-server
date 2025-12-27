@@ -276,10 +276,15 @@ app.post('/api/create-order', async (req, res) => {
             });
 
             // Tạo link thanh toán PayOS
+            // ⚠️ PayOS yêu cầu description TỐI ĐA 25 KÝ TỰ
+            let paymentDescription = `Gói ${packageInfo.name}`;
+            if (paymentDescription.length > 25) {
+              paymentDescription = paymentDescription.substring(0, 25);
+            }
             const paymentLinkData = {
               orderCode: orderCode.toString(),
               amount: packageInfo.price,
-              description: `Thanh toán gói ${packageInfo.name} - Hệ Thống Đối Soát COD`,
+              description: paymentDescription,
               returnUrl: `${serverUrl}/payment/success?orderCode=${orderCode}`,
               cancelUrl: `${serverUrl}/payment/cancel?orderCode=${orderCode}`,
               items: [
