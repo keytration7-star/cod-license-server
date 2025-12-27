@@ -194,25 +194,12 @@ async function createPaymentLink(orderData) {
     };
     
     // PayOS API v2 YÊU CẦU signature trong request body!
-    // Sử dụng thư viện @payos/node chính thức để tạo signature
-    let signature;
-    if (payosClient) {
-      try {
-        // Sử dụng method từ thư viện chính thức
-        signature = payosClient.crypto.createSignatureOfPaymentRequest(requestBody);
-        console.log('🔐 PayOS Signature created (using @payos/node):', signature.substring(0, 16) + '...');
-      } catch (error) {
-        console.error('❌ Error creating signature with @payos/node, falling back to manual:', error.message);
-        // Fallback to manual signature creation
-        signature = createChecksum(requestBody);
-        console.log('🔐 PayOS Signature created (manual fallback):', signature.substring(0, 16) + '...');
-      }
-    } else {
-      // Fallback to manual signature creation if client not initialized
-      signature = createChecksum(requestBody);
-      console.log('🔐 PayOS Signature created (manual):', signature.substring(0, 16) + '...');
-    }
+    // Tạo signature theo đúng PayOS documentation (với encodeURI)
+    // Lưu ý: Signature được tạo từ request body KHÔNG bao gồm signature field
+    const signature = createChecksum(requestBody);
     requestBody.signature = signature;
+    
+    console.log('🔐 PayOS Signature created:', signature.substring(0, 16) + '...');
     
     // Clone requestBody ngay sau khi tạo để đảm bảo có sẵn trong mọi trường hợp
     const requestBodyForResponse = JSON.parse(JSON.stringify(requestBody));
