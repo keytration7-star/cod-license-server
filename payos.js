@@ -34,10 +34,20 @@ console.log('🔑 PayOS Config loaded:', {
 });
 
 /**
- * Tạo chữ ký checksum
+ * Tạo chữ ký checksum cho PayOS API v2
+ * PayOS yêu cầu: sắp xếp các field theo thứ tự bảng chữ cái, sau đó tạo HMAC SHA256
  */
 function createChecksum(data) {
-  const dataString = JSON.stringify(data);
+  // Tạo object mới với các key được sắp xếp theo thứ tự bảng chữ cái
+  const sortedData = {};
+  Object.keys(data).sort().forEach(key => {
+    sortedData[key] = data[key];
+  });
+  
+  // Chuyển đổi thành JSON string (không có spaces để đảm bảo format chính xác)
+  const dataString = JSON.stringify(sortedData);
+  
+  // Tạo HMAC SHA256 signature
   const hmac = crypto.createHmac('sha256', PAYOS_CHECKSUM_KEY);
   hmac.update(dataString);
   return hmac.digest('hex');
