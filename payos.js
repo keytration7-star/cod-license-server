@@ -369,12 +369,20 @@ async function createPaymentLink(orderData) {
     
     if (!checkoutUrl) {
       console.error('❌ PayOS response không có checkoutUrl:', JSON.stringify(response.data, null, 2));
-      return {
+      // Lưu signatureDataString vào response để debug
+      const errorResponse = {
         success: false,
         error: 'PayOS response không có checkoutUrl. Response: ' + JSON.stringify(response.data),
         details: response.data,
         requestBody: requestBodyForResponse, // Sử dụng clone đã tạo sẵn
       };
+      // Thêm signatureDataString nếu có
+      if (requestBodyForResponse && requestBodyForResponse._signatureDataString) {
+        errorResponse.signatureDataString = requestBodyForResponse._signatureDataString;
+        // Xóa _signatureDataString khỏi requestBody để không gửi lên PayOS
+        delete requestBodyForResponse._signatureDataString;
+      }
+      return errorResponse;
     }
 
     console.log('✅ PayOS checkoutUrl received:', checkoutUrl);
