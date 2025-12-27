@@ -63,21 +63,10 @@ function createChecksum(data) {
     // Chuyển value thành string
     value = String(value);
     
-    // PayOS có thể yêu cầu:
-    // - URL (cancelUrl, returnUrl): KHÔNG encode (giữ nguyên)
-    // - description: encode (có thể có spaces)
-    // - items: encode (JSON string)
-    // - amount, orderCode: không encode (số)
-    if (key === 'cancelUrl' || key === 'returnUrl') {
-      // URL: KHÔNG encode
-      // Giữ nguyên URL
-    } else if (key === 'description' || key === 'items') {
-      // description và items: encode bằng encodeURIComponent
-      value = encodeURIComponent(value);
-    } else {
-      // Các field khác (amount, orderCode): không encode
-      // Giữ nguyên
-    }
+    // PayOS yêu cầu encode TẤT CẢ các giá trị bằng encodeURI
+    // encodeURI chỉ encode một số ký tự đặc biệt (spaces, etc.) nhưng KHÔNG encode : / ? = trong URL
+    // Điều này có thể đúng với yêu cầu của PayOS
+    value = encodeURI(value);
     
     return `${key}=${value}`;
   }).join('&');
