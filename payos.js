@@ -116,6 +116,7 @@ function createChecksum(data) {
  */
 async function createPaymentLink(orderData) {
   let requestBody = null; // Khai báo ở ngoài để có thể truy cập trong catch
+  let signatureDataStringForResponse = null; // Lưu riêng để trả về trong response (cho debug)
   try {
     const {
       orderCode,
@@ -246,8 +247,9 @@ async function createPaymentLink(orderData) {
     
     console.log('🔐 PayOS Signature created:', signature.substring(0, 16) + '...');
     
-    // Lưu data string để trả về trong response (cho debug)
-    requestBody._signatureDataString = signatureResult.dataString;
+    // Lưu signatureDataString riêng để trả về trong response (cho debug)
+    // ⚠️ QUAN TRỌNG: KHÔNG thêm _signatureDataString vào requestBody vì PayOS sẽ reject
+    signatureDataStringForResponse = signatureResult.dataString;
     
     // Clone requestBody ngay sau khi tạo để đảm bảo có sẵn trong mọi trường hợp
     const requestBodyForResponse = JSON.parse(JSON.stringify(requestBody));
@@ -409,24 +411,30 @@ async function createPaymentLink(orderData) {
         details: response.data,
         requestBody: requestBodyForResponse, // Sử dụng clone đã tạo sẵn
       };
-      // Thêm signatureDataString nếu có
-      if (requestBodyForResponse && requestBodyForResponse._signatureDataString) {
-        errorResponse.signatureDataString = requestBodyForResponse._signatureDataString;
-        // Xóa _signatureDataString khỏi requestBody để không gửi lên PayOS
-        delete requestBodyForResponse._signatureDataString;
+      // Thêm signatureDataString nếu có (lưu riêng, không trong requestBody)
+      if (signatureDataStringForResponse) {
+        errorResponse.signatureDataString = signatureDataStringForResponse;
       }
       return errorResponse;
     }
 
     console.log('✅ PayOS checkoutUrl received:', checkoutUrl);
 
-    return {
+    // Trả về response thành công
+    const successResponse = {
       success: true,
       data: {
         ...response.data,
         checkoutUrl: checkoutUrl, // Đảm bảo có checkoutUrl
       },
     };
+    
+    // Thêm signatureDataString vào response để debug (nếu có)
+    if (signatureDataStringForResponse) {
+      successResponse.signatureDataString = signatureDataStringForResponse;
+    }
+    
+    return successResponse;
   } catch (error) {
     console.error('❌ PayOS createPaymentLink error:', {
       message: error.message,
@@ -477,10 +485,12 @@ async function createPaymentLink(orderData) {
       statusCode: error.response?.status || null,
     };
     
-    // Thêm signatureDataString nếu có
-    if (requestBodyForError && requestBodyForError._signatureDataString) {
+    // Thêm signatureDataString nếu có (lưu riêng, không trong requestBody)
+    if (signatureDataStringForResponse) {
+      errorResponse.signatureDataString = signatureDataStringForResponse;
+    } else if (requestBodyForError && requestBodyForError._signatureDataString) {
+      // Fallback: nếu có trong requestBody (trường hợp cũ), lấy ra và xóa
       errorResponse.signatureDataString = requestBodyForError._signatureDataString;
-      // Xóa _signatureDataString khỏi requestBody để không gửi lên PayOS
       delete requestBodyForError._signatureDataString;
     }
     
