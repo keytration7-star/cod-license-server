@@ -36,17 +36,23 @@ console.log('🔑 PayOS Config loaded:', {
 /**
  * Tạo chữ ký checksum cho PayOS API v2
  * 
+ * ⚠️ CỰC KỲ QUAN TRỌNG: PayOS yêu cầu RAW STRING - KHÔNG ENCODE GÌ CẢ
+ * 
  * Cách tạo signature đúng theo PayOS:
- * 1. Lấy toàn bộ dữ liệu cần gửi PayOS (orderCode, amount, description, returnUrl, cancelUrl, items)
+ * 1. Lấy dữ liệu cần ký (orderCode, amount, description, returnUrl, cancelUrl)
+ *    ⚠️ KHÔNG ký items (vì là array/JSON)
  * 2. Sắp xếp key theo thứ tự alphabet (a → z)
- * 3. Ghép thành chuỗi: key1=value1&key2=value2&key3=value3 (KHÔNG encode, KHÔNG JSON, KHÔNG spaces)
+ * 3. Ghép thành chuỗi: key1=value1&key2=value2&key3=value3
+ *    ⚠️ KHÔNG encode, KHÔNG dùng URLSearchParams, KHÔNG dùng encodeURIComponent
+ *    ⚠️ Dùng RAW STRING - spaces giữ nguyên, không chuyển thành %20
  * 4. Dùng HMAC SHA256 với CHECKSUM_KEY để ký chuỗi này
  * 5. Kết quả trả về là chuỗi hex lowercase → đó là signature
  * 
  * Lưu ý:
  * - KHÔNG ký field signature
- * - KHÔNG encode values
- * - KHÔNG dùng JSON cho values
+ * - KHÔNG ký field items
+ * - KHÔNG encode values (raw string)
+ * - KHÔNG dùng URLSearchParams, encodeURIComponent, querystring
  * - Luôn sort key alphabet
  * - Luôn dùng UTF-8
  */
@@ -55,39 +61,43 @@ function createChecksum(data) {
   const sortedKeys = Object.keys(data).sort();
   
   // Tạo chuỗi dữ liệu theo format: key1=value1&key2=value2&key3=value3
-  // KHÔNG encode, KHÔNG JSON, KHÔNG spaces thừa, KHÔNG xuống dòng
+  // ⚠️ TUYỆT ĐỐI KHÔNG ENCODE - dùng RAW STRING
   // ⚠️ LƯU Ý: Function này chỉ nhận các field primitive (KHÔNG có items)
-  const dataString = sortedKeys.map(key => {
-    let value = data[key];
-    
-    // ⚠️ Nếu có items trong data, đó là lỗi logic - items không được ký
-    if (key === 'items') {
-      console.error('❌ ERROR: items field should NOT be in signature data!');
-      throw new Error('Items field cannot be signed by PayOS');
-    }
-    
-    // Nếu value là object hoặc array, đó là lỗi - chỉ primitive values được ký
-    if (typeof value === 'object' && value !== null) {
-      console.warn('⚠️ Warning: Object/array found in signature data. Only primitive values should be signed!');
-      value = JSON.stringify(value);
-    }
-    
-    // Nếu value là null hoặc undefined, thay bằng chuỗi rỗng
-    if (value === null || value === undefined) {
-      value = '';
-    }
-    
-    // Chuyển value thành string (KHÔNG encode gì cả - dùng raw value, kể cả spaces)
-    value = String(value);
-    
-    // Ghép key=value (KHÔNG encode spaces, KHÔNG encode gì cả - dùng raw value)
-    return `${key}=${value}`;
-  }).join('&'); // Nối bằng & (KHÔNG có spaces thừa)
+  const dataString = sortedKeys
+    .map(key => {
+      // ⚠️ Nếu có items trong data, đó là lỗi logic - items không được ký
+      if (key === 'items') {
+        console.error('❌ ERROR: items field should NOT be in signature data!');
+        throw new Error('Items field cannot be signed by PayOS');
+      }
+      
+      let value = data[key];
+      
+      // Nếu value là object hoặc array, đó là lỗi - chỉ primitive values được ký
+      if (typeof value === 'object' && value !== null) {
+        console.warn('⚠️ Warning: Object/array found in signature data. Only primitive values should be signed!');
+        value = JSON.stringify(value);
+      }
+      
+      // Nếu value là null hoặc undefined, thay bằng chuỗi rỗng
+      if (value === null || value === undefined) {
+        value = '';
+      }
+      
+      // Chuyển value thành string - RAW, KHÔNG ENCODE GÌ CẢ
+      // Spaces giữ nguyên, không chuyển thành %20
+      value = String(value);
+      
+      // Ghép key=value - RAW STRING, KHÔNG ENCODE
+      return `${key}=${value}`;
+    })
+    .join('&'); // Nối bằng & - RAW, KHÔNG có spaces thừa
   
-  console.log('🔐 PayOS Data string for signature (FULL):', dataString);
+  console.log('🔐 PayOS Data string for signature (FULL - RAW):', dataString);
   console.log('🔐 PayOS Data string for signature (first 200 chars):', dataString.substring(0, 200) + '...');
   
   // Tạo HMAC SHA256 signature với CHECKSUM_KEY
+  // ⚠️ Dùng RAW STRING - không encode
   const hmac = crypto.createHmac('sha256', PAYOS_CHECKSUM_KEY);
   hmac.update(dataString, 'utf8'); // Đảm bảo dùng UTF-8
   const signature = hmac.digest('hex'); // Hex lowercase
@@ -97,7 +107,7 @@ function createChecksum(data) {
   // Trả về cả signature và dataString để debug
   return {
     signature: signature,
-    dataString: dataString,
+    dataString: dataString, // RAW STRING - không encode
   };
 }
 
