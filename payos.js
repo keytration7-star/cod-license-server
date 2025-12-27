@@ -63,10 +63,8 @@ function createChecksum(data) {
     // Chuyển value thành string
     value = String(value);
     
-    // PayOS yêu cầu encode TẤT CẢ các giá trị bằng encodeURI
-    // encodeURI chỉ encode một số ký tự đặc biệt (spaces, etc.) nhưng KHÔNG encode : / ? = trong URL
-    // Điều này có thể đúng với yêu cầu của PayOS
-    value = encodeURI(value);
+    // Thử KHÔNG encode gì cả - PayOS có thể yêu cầu raw values
+    // Giữ nguyên giá trị, không encode
     
     return `${key}=${value}`;
   }).join('&');
