@@ -20,6 +20,23 @@ const PAYOS_API_URL = process.env.PAYOS_API_URL ||
                       process.env.RAILWAY_SERVICE_PAYOS_API_URL || 
                       config.PAYOS_API_URL;
 
+// Khởi tạo PayOS client từ thư viện chính thức
+let payosClient = null;
+try {
+  if (PAYOS_CLIENT_ID && PAYOS_API_KEY && PAYOS_CHECKSUM_KEY) {
+    payosClient = new PayOS({
+      clientId: PAYOS_CLIENT_ID,
+      apiKey: PAYOS_API_KEY,
+      checksumKey: PAYOS_CHECKSUM_KEY,
+    });
+    console.log('✅ PayOS client initialized successfully');
+  } else {
+    console.warn('⚠️ PayOS keys missing, client not initialized');
+  }
+} catch (error) {
+  console.error('❌ Failed to initialize PayOS client:', error.message);
+}
+
 // Log PayOS config khi module load (chỉ log prefix để bảo mật)
 console.log('🔑 PayOS Config loaded:', {
   hasClientId: !!PAYOS_CLIENT_ID,
@@ -28,6 +45,7 @@ console.log('🔑 PayOS Config loaded:', {
   clientIdLength: PAYOS_CLIENT_ID?.length || 0,
   apiKeyLength: PAYOS_API_KEY?.length || 0,
   apiUrl: PAYOS_API_URL,
+  hasPayOSClient: !!payosClient,
   // Debug: kiểm tra cả 2 cách
   directClientId: !!process.env.PAYOS_CLIENT_ID,
   railwayClientId: !!process.env.RAILWAY_SERVICE_PAYOS_CLIENT_ID,
@@ -193,11 +211,25 @@ async function createPaymentLink(orderData) {
     };
     
     // PayOS API v2 YÊU CẦU signature trong request body!
-    // Tạo signature từ request body data
-    const signature = createChecksum(requestBody);
+    // Sử dụng thư viện @payos/node chính thức để tạo signature
+    let signature;
+    if (payosClient) {
+      try {
+        // Sử dụng method từ thư viện chính thức
+        signature = payosClient.crypto.createSignatureOfPaymentRequest(requestBody);
+        console.log('🔐 PayOS Signature created (using @payos/node):', signature.substring(0, 16) + '...');
+      } catch (error) {
+        console.error('❌ Error creating signature with @payos/node, falling back to manual:', error.message);
+        // Fallback to manual signature creation
+        signature = createChecksum(requestBody);
+        console.log('🔐 PayOS Signature created (manual fallback):', signature.substring(0, 16) + '...');
+      }
+    } else {
+      // Fallback to manual signature creation if client not initialized
+      signature = createChecksum(requestBody);
+      console.log('🔐 PayOS Signature created (manual):', signature.substring(0, 16) + '...');
+    }
     requestBody.signature = signature;
-    
-    console.log('🔐 PayOS Signature created:', signature.substring(0, 16) + '...');
     
     // Clone requestBody ngay sau khi tạo để đảm bảo có sẵn trong mọi trường hợp
     const requestBodyForResponse = JSON.parse(JSON.stringify(requestBody));
