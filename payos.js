@@ -59,10 +59,11 @@ function createChecksum(data) {
       value = '';
     }
     
-    // Chuyển value thành string và mã hóa bằng encodeURI
-    // PayOS yêu cầu encodeURI để xử lý các ký tự đặc biệt trong URL (?=, spaces, etc.)
+    // Chuyển value thành string và mã hóa bằng encodeURIComponent
+    // PayOS yêu cầu encodeURIComponent để mã hóa TẤT CẢ các ký tự đặc biệt (bao gồm : / ? =)
+    // encodeURI chỉ encode một số ký tự, nhưng encodeURIComponent encode tất cả (phù hợp hơn cho PayOS)
     value = String(value);
-    value = encodeURI(value);
+    value = encodeURIComponent(value);
     
     return `${key}=${value}`;
   }).join('&');
