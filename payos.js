@@ -37,24 +37,21 @@ console.log('🔑 PayOS Config loaded:', {
  * Tạo chữ ký checksum cho PayOS API v2
  * PayOS yêu cầu:
  * 1. Sắp xếp các field theo thứ tự bảng chữ cái
- * 2. Tạo chuỗi dữ liệu theo format: key1=value1&key2=value2...
- * 3. Tạo HMAC SHA256 signature từ chuỗi đó
- * 
- * Lưu ý: PayOS có thể KHÔNG yêu cầu encodeURI cho tất cả field
- * Thử không dùng encodeURI trước, nếu vẫn lỗi thì thử lại với encodeURI
+ * 2. Mã hóa giá trị bằng encodeURI (đặc biệt cho URL và các ký tự đặc biệt)
+ * 3. Tạo chuỗi dữ liệu theo format: key1=encodeURI(value1)&key2=encodeURI(value2)...
+ * 4. Tạo HMAC SHA256 signature từ chuỗi đó
  */
 function createChecksum(data) {
   // Sắp xếp các key theo thứ tự bảng chữ cái
   const sortedKeys = Object.keys(data).sort();
   
-  // Tạo chuỗi dữ liệu theo format key=value&key=value...
-  // PayOS có thể yêu cầu JSON string cho items array KHÔNG có spaces
+  // Tạo chuỗi dữ liệu theo format key=encodeURI(value)&key=encodeURI(value)...
   const dataString = sortedKeys.map(key => {
     let value = data[key];
     
-    // Nếu value là object hoặc array, chuyển thành JSON string (KHÔNG có spaces)
+    // Nếu value là object hoặc array, chuyển thành JSON string
     if (typeof value === 'object' && value !== null) {
-      value = JSON.stringify(value); // JSON.stringify tự động loại bỏ spaces không cần thiết
+      value = JSON.stringify(value);
     }
     
     // Nếu value là null hoặc undefined, thay bằng chuỗi rỗng
@@ -62,8 +59,10 @@ function createChecksum(data) {
       value = '';
     }
     
-    // Chuyển value thành string (KHÔNG dùng encodeURI - thử cách này trước)
+    // Chuyển value thành string và mã hóa bằng encodeURI
+    // PayOS yêu cầu encodeURI để xử lý các ký tự đặc biệt trong URL (?=, spaces, etc.)
     value = String(value);
+    value = encodeURI(value);
     
     return `${key}=${value}`;
   }).join('&');
