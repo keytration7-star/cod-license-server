@@ -78,7 +78,11 @@ function createChecksum(data) {
   
   console.log('🔐 PayOS Signature:', signature);
   
-  return signature;
+  // Trả về cả signature và dataString để debug
+  return {
+    signature: signature,
+    dataString: dataString,
+  };
 }
 
 /**
@@ -201,12 +205,16 @@ async function createPaymentLink(orderData) {
     };
     
     // PayOS API v2 YÊU CẦU signature trong request body!
-    // Tạo signature theo đúng PayOS documentation (với encodeURI)
+    // Tạo signature theo đúng PayOS documentation
     // Lưu ý: Signature được tạo từ request body KHÔNG bao gồm signature field
-    const signature = createChecksum(requestBody);
+    const signatureResult = createChecksum(requestBody);
+    const signature = signatureResult.signature;
     requestBody.signature = signature;
     
     console.log('🔐 PayOS Signature created:', signature.substring(0, 16) + '...');
+    
+    // Lưu data string để trả về trong response (cho debug)
+    requestBody._signatureDataString = signatureResult.dataString;
     
     // Clone requestBody ngay sau khi tạo để đảm bảo có sẵn trong mọi trường hợp
     const requestBodyForResponse = JSON.parse(JSON.stringify(requestBody));

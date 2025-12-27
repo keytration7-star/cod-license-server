@@ -149,6 +149,7 @@ app.get('/api/test-payos', async (req, res) => {
     testResult.test.error = testResult_payos.error || null;
     testResult.test.details = testResult_payos.details || null;
     testResult.test.requestBody = testResult_payos.requestBody || null; // Thêm request body vào response
+    testResult.test.signatureDataString = testResult_payos.signatureDataString || null; // Thêm data string dùng để tạo signature
 
     res.json({
       success: true,
