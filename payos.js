@@ -222,21 +222,28 @@ async function createPaymentLink(orderData) {
     // Đảm bảo tất cả field đúng type và format
     // Lưu ý: PayOS yêu cầu description không được rỗng
     const finalDescription = String(description || 'Payment').trim() || 'Payment';
-    requestBody = {
+    
+    // ⚠️ QUAN TRỌNG: PayOS KHÔNG cho phép ký field items!
+    // Chỉ ký các field primitive: orderCode, amount, description, cancelUrl, returnUrl
+    // Tạo object riêng để ký (KHÔNG có items, KHÔNG có signature)
+    const dataToSign = {
       orderCode: orderCodeInt, // Phải là số nguyên
       amount: amountInt, // Phải là số nguyên (VNĐ)
       description: finalDescription, // String, không được null hoặc rỗng
-      items: formattedItems, // Array of objects với name, quantity, price
       cancelUrl: finalCancelUrl, // URL hợp lệ
       returnUrl: finalReturnUrl, // URL hợp lệ
     };
     
-    // PayOS API v2 YÊU CẦU signature trong request body!
-    // Tạo signature theo đúng PayOS documentation
-    // Lưu ý: Signature được tạo từ request body KHÔNG bao gồm signature field
-    const signatureResult = createChecksum(requestBody);
+    // Tạo signature từ dataToSign (KHÔNG có items)
+    const signatureResult = createChecksum(dataToSign);
     const signature = signatureResult.signature;
-    requestBody.signature = signature;
+    
+    // Sau đó mới tạo request body đầy đủ (có items và signature)
+    requestBody = {
+      ...dataToSign, // Các field đã ký
+      items: formattedItems, // Array - gửi PayOS nhưng KHÔNG được ký
+      signature: signature, // Signature đã tạo
+    };
     
     console.log('🔐 PayOS Signature created:', signature.substring(0, 16) + '...');
     
