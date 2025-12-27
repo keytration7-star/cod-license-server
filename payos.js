@@ -35,22 +35,32 @@ console.log('🔑 PayOS Config loaded:', {
 
 /**
  * Tạo chữ ký checksum cho PayOS API v2
- * PayOS yêu cầu:
- * 1. Sắp xếp các field theo thứ tự bảng chữ cái
- * 2. Mã hóa giá trị bằng encodeURI (đặc biệt cho URL và các ký tự đặc biệt)
- * 3. Tạo chuỗi dữ liệu theo format: key1=encodeURI(value1)&key2=encodeURI(value2)...
- * 4. Tạo HMAC SHA256 signature từ chuỗi đó
+ * 
+ * Cách tạo signature đúng theo PayOS:
+ * 1. Lấy toàn bộ dữ liệu cần gửi PayOS (orderCode, amount, description, returnUrl, cancelUrl, items)
+ * 2. Sắp xếp key theo thứ tự alphabet (a → z)
+ * 3. Ghép thành chuỗi: key1=value1&key2=value2&key3=value3 (KHÔNG encode, KHÔNG JSON, KHÔNG spaces)
+ * 4. Dùng HMAC SHA256 với CHECKSUM_KEY để ký chuỗi này
+ * 5. Kết quả trả về là chuỗi hex lowercase → đó là signature
+ * 
+ * Lưu ý:
+ * - KHÔNG ký field signature
+ * - KHÔNG encode values
+ * - KHÔNG dùng JSON cho values
+ * - Luôn sort key alphabet
+ * - Luôn dùng UTF-8
  */
 function createChecksum(data) {
-  // Sắp xếp các key theo thứ tự bảng chữ cái
+  // Sắp xếp các key theo thứ tự alphabet (a → z)
   const sortedKeys = Object.keys(data).sort();
   
-  // Tạo chuỗi dữ liệu theo format key=value&key=value...
-  // PayOS có thể yêu cầu: URL không encode, nhưng description và items thì encode
+  // Tạo chuỗi dữ liệu theo format: key1=value1&key2=value2&key3=value3
+  // KHÔNG encode, KHÔNG JSON, KHÔNG spaces, KHÔNG xuống dòng
   const dataString = sortedKeys.map(key => {
     let value = data[key];
     
-    // Nếu value là object hoặc array, chuyển thành JSON string
+    // Nếu value là object hoặc array (như items), chuyển thành JSON string
+    // PayOS yêu cầu items là JSON string trong payload, nhưng trong signature thì dùng JSON string
     if (typeof value === 'object' && value !== null) {
       value = JSON.stringify(value);
     }
@@ -60,22 +70,20 @@ function createChecksum(data) {
       value = '';
     }
     
-    // Chuyển value thành string
+    // Chuyển value thành string (KHÔNG encode gì cả - dùng raw value)
     value = String(value);
     
-    // Thử KHÔNG encode gì cả - PayOS có thể yêu cầu raw values
-    // Giữ nguyên giá trị, không encode
-    
+    // Ghép key=value (KHÔNG có spaces, KHÔNG encode)
     return `${key}=${value}`;
-  }).join('&');
+  }).join('&'); // Nối bằng & (KHÔNG có spaces)
   
   console.log('🔐 PayOS Data string for signature (FULL):', dataString);
   console.log('🔐 PayOS Data string for signature (first 200 chars):', dataString.substring(0, 200) + '...');
   
-  // Tạo HMAC SHA256 signature
+  // Tạo HMAC SHA256 signature với CHECKSUM_KEY
   const hmac = crypto.createHmac('sha256', PAYOS_CHECKSUM_KEY);
-  hmac.update(dataString);
-  const signature = hmac.digest('hex');
+  hmac.update(dataString, 'utf8'); // Đảm bảo dùng UTF-8
+  const signature = hmac.digest('hex'); // Hex lowercase
   
   console.log('🔐 PayOS Signature:', signature);
   
