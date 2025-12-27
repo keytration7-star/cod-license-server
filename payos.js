@@ -162,6 +162,13 @@ async function createPaymentLink(orderData) {
       returnUrl: finalReturnUrl, // URL hợp lệ
     };
     
+    // PayOS API v2 YÊU CẦU signature trong request body!
+    // Tạo signature từ request body data
+    const signature = createChecksum(requestBody);
+    requestBody.signature = signature;
+    
+    console.log('🔐 PayOS Signature created:', signature.substring(0, 16) + '...');
+    
     // Clone requestBody ngay sau khi tạo để đảm bảo có sẵn trong mọi trường hợp
     const requestBodyForResponse = JSON.parse(JSON.stringify(requestBody));
     
