@@ -45,7 +45,8 @@ function createChecksum(data) {
   // Sắp xếp các key theo thứ tự bảng chữ cái
   const sortedKeys = Object.keys(data).sort();
   
-  // Tạo chuỗi dữ liệu theo format key=encodeURI(value)&key=encodeURI(value)...
+  // Tạo chuỗi dữ liệu theo format key=value&key=value...
+  // PayOS có thể yêu cầu: URL không encode, nhưng description và items thì encode
   const dataString = sortedKeys.map(key => {
     let value = data[key];
     
@@ -59,11 +60,24 @@ function createChecksum(data) {
       value = '';
     }
     
-    // Chuyển value thành string và mã hóa bằng encodeURIComponent
-    // PayOS yêu cầu encodeURIComponent để mã hóa TẤT CẢ các ký tự đặc biệt (bao gồm : / ? =)
-    // encodeURI chỉ encode một số ký tự, nhưng encodeURIComponent encode tất cả (phù hợp hơn cho PayOS)
+    // Chuyển value thành string
     value = String(value);
-    value = encodeURIComponent(value);
+    
+    // PayOS có thể yêu cầu:
+    // - URL (cancelUrl, returnUrl): KHÔNG encode (giữ nguyên)
+    // - description: encode (có thể có spaces)
+    // - items: encode (JSON string)
+    // - amount, orderCode: không encode (số)
+    if (key === 'cancelUrl' || key === 'returnUrl') {
+      // URL: KHÔNG encode
+      // Giữ nguyên URL
+    } else if (key === 'description' || key === 'items') {
+      // description và items: encode bằng encodeURIComponent
+      value = encodeURIComponent(value);
+    } else {
+      // Các field khác (amount, orderCode): không encode
+      // Giữ nguyên
+    }
     
     return `${key}=${value}`;
   }).join('&');
