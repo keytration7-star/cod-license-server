@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const axios = require('axios');
+const { PayOS } = require('@payos/node');
 const config = require('./config');
 
 // Railway có thể tự động thêm prefix RAILWAY_SERVICE_ cho service variables
