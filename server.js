@@ -123,7 +123,7 @@ app.get('/api/test-payos', async (req, res) => {
     const testPaymentLinkData = {
       orderCode: testOrderCode.toString(),
       amount: testAmount,
-      description: 'Test PayOS Connection',
+      description: 'Test PayOS', // Tối đa 25 ký tự (PayOS yêu cầu)
       returnUrl: `${serverUrl}/payment/success?orderCode=${testOrderCode}`,
       cancelUrl: `${serverUrl}/payment/cancel?orderCode=${testOrderCode}`,
       items: [

@@ -220,8 +220,13 @@ async function createPaymentLink(orderData) {
     
     // PayOS API v2 request body format
     // Đảm bảo tất cả field đúng type và format
-    // Lưu ý: PayOS yêu cầu description không được rỗng
-    const finalDescription = String(description || 'Payment').trim() || 'Payment';
+    // Lưu ý: PayOS yêu cầu description không được rỗng và TỐI ĐA 25 KÝ TỰ
+    let finalDescription = String(description || 'Payment').trim() || 'Payment';
+    // Giới hạn description tối đa 25 ký tự (PayOS yêu cầu)
+    if (finalDescription.length > 25) {
+      finalDescription = finalDescription.substring(0, 25);
+      console.warn(`⚠️ Description quá dài, đã cắt xuống 25 ký tự: "${finalDescription}"`);
+    }
     
     // ⚠️ QUAN TRỌNG: PayOS KHÔNG cho phép ký field items!
     // Chỉ ký các field primitive: orderCode, amount, description, cancelUrl, returnUrl
