@@ -55,14 +55,21 @@ function createChecksum(data) {
   const sortedKeys = Object.keys(data).sort();
   
   // Tạo chuỗi dữ liệu theo format: key1=value1&key2=value2&key3=value3
-  // KHÔNG có dấu cách, KHÔNG xuống dòng, KHÔNG JSON formatting
+  // KHÔNG encode, KHÔNG JSON, KHÔNG spaces, KHÔNG xuống dòng
+  // ⚠️ LƯU Ý: Function này chỉ nhận các field primitive (KHÔNG có items)
   const dataString = sortedKeys.map(key => {
     let value = data[key];
     
-    // Nếu value là object hoặc array (như items), chuyển thành JSON string
-    // PayOS yêu cầu items là JSON string (compact, không có spaces)
+    // ⚠️ Nếu có items trong data, đó là lỗi logic - items không được ký
+    if (key === 'items') {
+      console.error('❌ ERROR: items field should NOT be in signature data!');
+      throw new Error('Items field cannot be signed by PayOS');
+    }
+    
+    // Nếu value là object hoặc array, đó là lỗi - chỉ primitive values được ký
     if (typeof value === 'object' && value !== null) {
-      value = JSON.stringify(value); // JSON.stringify tự động loại bỏ spaces không cần thiết
+      console.warn('⚠️ Warning: Object/array found in signature data. Only primitive values should be signed!');
+      value = JSON.stringify(value);
     }
     
     // Nếu value là null hoặc undefined, thay bằng chuỗi rỗng
@@ -70,28 +77,10 @@ function createChecksum(data) {
       value = '';
     }
     
-    // Chuyển value thành string
+    // Chuyển value thành string (KHÔNG encode gì cả - dùng raw value)
     value = String(value);
     
-    // Encode spaces và các ký tự đặc biệt (nhưng giữ nguyên : / ? = trong URL)
-    // PayOS có thể yêu cầu encode spaces trong description nhưng không encode URL
-    if (key === 'cancelUrl' || key === 'returnUrl') {
-      // URL: KHÔNG encode (giữ nguyên : / ? =)
-      // Nhưng có thể cần encode spaces nếu có
-      value = value.replace(/ /g, '%20'); // Chỉ encode spaces
-    } else if (key === 'description') {
-      // Description: encode spaces
-      value = value.replace(/ /g, '%20');
-    } else if (key === 'items') {
-      // Items: JSON string, có thể có spaces trong JSON, nhưng PayOS có thể yêu cầu encode
-      // Thử encode spaces trong JSON string
-      value = value.replace(/ /g, '%20');
-    } else {
-      // Các field khác: không encode
-      // Giữ nguyên
-    }
-    
-    // Ghép key=value (KHÔNG có spaces thừa)
+    // Ghép key=value (KHÔNG có spaces, KHÔNG encode)
     return `${key}=${value}`;
   }).join('&'); // Nối bằng & (KHÔNG có spaces)
   
