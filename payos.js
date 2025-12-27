@@ -55,14 +55,14 @@ function createChecksum(data) {
   const sortedKeys = Object.keys(data).sort();
   
   // Tạo chuỗi dữ liệu theo format: key1=value1&key2=value2&key3=value3
-  // KHÔNG encode, KHÔNG JSON, KHÔNG spaces, KHÔNG xuống dòng
+  // KHÔNG có dấu cách, KHÔNG xuống dòng, KHÔNG JSON formatting
   const dataString = sortedKeys.map(key => {
     let value = data[key];
     
     // Nếu value là object hoặc array (như items), chuyển thành JSON string
-    // PayOS yêu cầu items là JSON string trong payload, nhưng trong signature thì dùng JSON string
+    // PayOS yêu cầu items là JSON string (compact, không có spaces)
     if (typeof value === 'object' && value !== null) {
-      value = JSON.stringify(value);
+      value = JSON.stringify(value); // JSON.stringify tự động loại bỏ spaces không cần thiết
     }
     
     // Nếu value là null hoặc undefined, thay bằng chuỗi rỗng
@@ -70,10 +70,28 @@ function createChecksum(data) {
       value = '';
     }
     
-    // Chuyển value thành string (KHÔNG encode gì cả - dùng raw value)
+    // Chuyển value thành string
     value = String(value);
     
-    // Ghép key=value (KHÔNG có spaces, KHÔNG encode)
+    // Encode spaces và các ký tự đặc biệt (nhưng giữ nguyên : / ? = trong URL)
+    // PayOS có thể yêu cầu encode spaces trong description nhưng không encode URL
+    if (key === 'cancelUrl' || key === 'returnUrl') {
+      // URL: KHÔNG encode (giữ nguyên : / ? =)
+      // Nhưng có thể cần encode spaces nếu có
+      value = value.replace(/ /g, '%20'); // Chỉ encode spaces
+    } else if (key === 'description') {
+      // Description: encode spaces
+      value = value.replace(/ /g, '%20');
+    } else if (key === 'items') {
+      // Items: JSON string, có thể có spaces trong JSON, nhưng PayOS có thể yêu cầu encode
+      // Thử encode spaces trong JSON string
+      value = value.replace(/ /g, '%20');
+    } else {
+      // Các field khác: không encode
+      // Giữ nguyên
+    }
+    
+    // Ghép key=value (KHÔNG có spaces thừa)
     return `${key}=${value}`;
   }).join('&'); // Nối bằng & (KHÔNG có spaces)
   
