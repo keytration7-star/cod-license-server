@@ -267,10 +267,10 @@ async function createPaymentLink(orderData) {
       requestBody.amount = totalItemsAmount;
     }
     
-    // Đảm bảo description không quá dài (PayOS có thể có giới hạn)
-    if (requestBody.description.length > 255) {
-      requestBody.description = requestBody.description.substring(0, 255);
-      console.warn('⚠️ Description quá dài, đã cắt xuống 255 ký tự');
+    // Đảm bảo description không quá dài (PayOS yêu cầu TỐI ĐA 25 KÝ TỰ)
+    if (requestBody.description.length > 25) {
+      requestBody.description = requestBody.description.substring(0, 25);
+      console.warn('⚠️ Description quá dài, đã cắt xuống 25 ký tự (PayOS yêu cầu)');
     }
     
     // Đảm bảo description không rỗng (PayOS yêu cầu)
