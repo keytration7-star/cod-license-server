@@ -176,6 +176,18 @@ async function createPaymentLink(orderData) {
       requestBody.description = requestBody.description.substring(0, 255);
       console.warn('⚠️ Description quá dài, đã cắt xuống 255 ký tự');
     }
+    
+    // Đảm bảo description không rỗng (PayOS yêu cầu)
+    if (!requestBody.description || requestBody.description.trim() === '') {
+      requestBody.description = 'Payment'; // Default description
+      console.warn('⚠️ Description rỗng, đã set default: "Payment"');
+    }
+    
+    // Đảm bảo items name không quá dài (PayOS có thể có giới hạn)
+    requestBody.items = requestBody.items.map(item => ({
+      ...item,
+      name: item.name.length > 255 ? item.name.substring(0, 255) : item.name,
+    }));
 
     // Kiểm tra API keys trước khi gọi (kiểm tra cả undefined, null và empty string)
     // Sử dụng giá trị từ config.js nếu không có trong env
