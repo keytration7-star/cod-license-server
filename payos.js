@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const axios = require('axios');
-const { PayOS } = require('@payos/node');
 const config = require('./config');
 
 // Railway có thể tự động thêm prefix RAILWAY_SERVICE_ cho service variables
@@ -20,23 +19,6 @@ const PAYOS_API_URL = process.env.PAYOS_API_URL ||
                       process.env.RAILWAY_SERVICE_PAYOS_API_URL || 
                       config.PAYOS_API_URL;
 
-// Khởi tạo PayOS client từ thư viện chính thức
-let payosClient = null;
-try {
-  if (PAYOS_CLIENT_ID && PAYOS_API_KEY && PAYOS_CHECKSUM_KEY) {
-    payosClient = new PayOS({
-      clientId: PAYOS_CLIENT_ID,
-      apiKey: PAYOS_API_KEY,
-      checksumKey: PAYOS_CHECKSUM_KEY,
-    });
-    console.log('✅ PayOS client initialized successfully');
-  } else {
-    console.warn('⚠️ PayOS keys missing, client not initialized');
-  }
-} catch (error) {
-  console.error('❌ Failed to initialize PayOS client:', error.message);
-}
-
 // Log PayOS config khi module load (chỉ log prefix để bảo mật)
 console.log('🔑 PayOS Config loaded:', {
   hasClientId: !!PAYOS_CLIENT_ID,
@@ -45,7 +27,6 @@ console.log('🔑 PayOS Config loaded:', {
   clientIdLength: PAYOS_CLIENT_ID?.length || 0,
   apiKeyLength: PAYOS_API_KEY?.length || 0,
   apiUrl: PAYOS_API_URL,
-  hasPayOSClient: !!payosClient,
   // Debug: kiểm tra cả 2 cách
   directClientId: !!process.env.PAYOS_CLIENT_ID,
   railwayClientId: !!process.env.RAILWAY_SERVICE_PAYOS_CLIENT_ID,
