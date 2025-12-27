@@ -55,7 +55,7 @@ function createChecksum(data) {
   const sortedKeys = Object.keys(data).sort();
   
   // Tạo chuỗi dữ liệu theo format: key1=value1&key2=value2&key3=value3
-  // KHÔNG encode, KHÔNG JSON, KHÔNG spaces, KHÔNG xuống dòng
+  // KHÔNG encode, KHÔNG JSON, KHÔNG spaces thừa, KHÔNG xuống dòng
   // ⚠️ LƯU Ý: Function này chỉ nhận các field primitive (KHÔNG có items)
   const dataString = sortedKeys.map(key => {
     let value = data[key];
@@ -77,12 +77,12 @@ function createChecksum(data) {
       value = '';
     }
     
-    // Chuyển value thành string (KHÔNG encode gì cả - dùng raw value)
+    // Chuyển value thành string (KHÔNG encode gì cả - dùng raw value, kể cả spaces)
     value = String(value);
     
-    // Ghép key=value (KHÔNG có spaces, KHÔNG encode)
+    // Ghép key=value (KHÔNG encode spaces, KHÔNG encode gì cả - dùng raw value)
     return `${key}=${value}`;
-  }).join('&'); // Nối bằng & (KHÔNG có spaces)
+  }).join('&'); // Nối bằng & (KHÔNG có spaces thừa)
   
   console.log('🔐 PayOS Data string for signature (FULL):', dataString);
   console.log('🔐 PayOS Data string for signature (first 200 chars):', dataString.substring(0, 200) + '...');
